@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import OpenStreetMapPicker from "@/src/components/shelters/OpenStreetMapPicker";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
 import type {
   CreateShelterInput,
   Shelter,
+  ShelterLocationPoint,
   UpdateShelterInput,
 } from "@/src/types/shelter";
 
@@ -20,6 +22,9 @@ export default function ShelterForm(props: Props) {
   const initial = props.mode === "update" ? props.shelter : undefined;
   const [name, setName] = useState(initial?.name || "");
   const [location, setLocation] = useState(initial?.location || "");
+  const [locationPoint, setLocationPoint] = useState<ShelterLocationPoint | null>(
+    initial?.locationPoint ?? null,
+  );
   const [capacity, setCapacity] = useState(String(initial?.capacity || ""));
   const [occupancy, setOccupancy] = useState(String(initial?.occupancy ?? 0));
   const [status, setStatus] = useState<"Open" | "Closed">(
@@ -39,12 +44,8 @@ export default function ShelterForm(props: Props) {
       setError("Shelter name is required. Enter a name.");
       return;
     }
-    if (props.mode === "create" && !location.trim()) {
-      setError("Shelter location is required. Enter a location.");
-      return;
-    }
-    if (props.mode === "create" && !capacity.trim()) {
-      setError("Capacity is required. Enter a whole number greater than 0.");
+    if (!location.trim()) {
+      setError("Shelter location is required. Enter a location or address.");
       return;
     }
     if (
@@ -52,6 +53,10 @@ export default function ShelterForm(props: Props) {
       (!Number.isInteger(parsedCapacity) || parsedCapacity < 1)
     ) {
       setError("Capacity must be a whole number greater than 0. Enter a valid capacity.");
+      return;
+    }
+    if (!locationPoint) {
+      setError("Map location is required. Select or enter a valid map point.");
       return;
     }
     if (!occupancy.trim()) {
@@ -76,6 +81,7 @@ export default function ShelterForm(props: Props) {
         await props.onSubmit({
           name: name.trim(),
           location: location.trim(),
+          locationPoint,
           capacity: parsedCapacity,
           occupancy: parsedOccupancy,
           operationalStatus: status,
@@ -83,6 +89,8 @@ export default function ShelterForm(props: Props) {
         });
       } else {
         await props.onSubmit({
+          location: location.trim(),
+          locationPoint,
           occupancy: parsedOccupancy,
           operationalStatus: status,
           remarks: remarks.trim(),
@@ -103,17 +111,22 @@ export default function ShelterForm(props: Props) {
       {props.mode === "create" ? (
         <>
           <Field label="Shelter name" value={name} set={setName} />
-          <Field label="Location" value={location} set={setLocation} />
+          <Field label="Shelter location or address" value={location} set={setLocation} />
           <Field label="Capacity" value={capacity} set={setCapacity} numeric />
         </>
       ) : (
-        <div className="rounded-xl bg-[#f4f7f9] p-4">
-          <strong className="text-[#183447]">{props.shelter.name}</strong>
-          <p className={`mt-1 text-sm ${ui.muted}`}>
-            {props.shelter.location} · Capacity {props.shelter.capacity}
-          </p>
-        </div>
+        <>
+          <div className="rounded-xl bg-[#f4f7f9] p-4">
+            <strong className="text-[#183447]">{props.shelter.name}</strong>
+            <p className={`mt-1 text-sm ${ui.muted}`}>
+              Capacity {props.shelter.capacity}
+            </p>
+          </div>
+          <Field label="Shelter location or address" value={location} set={setLocation} />
+        </>
       )}
+
+      <OpenStreetMapPicker value={locationPoint} onChange={setLocationPoint} />
 
       <Field label="Current occupancy" value={occupancy} set={setOccupancy} numeric />
       <p className="-mt-3 text-sm text-[#71818b]">
@@ -185,3 +198,4 @@ function parsedOrZero(value: string): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 }
+
