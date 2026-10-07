@@ -15,7 +15,9 @@ export function useShelters() {
     try {
       setShelters(await getShelters());
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not load shelters.");
+      setError(
+        reason instanceof Error ? reason.message : "Could not load shelters.",
+      );
     } finally {
       setLoading(false);
     }
@@ -23,14 +25,24 @@ export function useShelters() {
 
   useEffect(() => {
     let active = true;
-    getShelters().then((value) => {
-      if (active) setShelters(value);
-    }).catch((reason: unknown) => {
-      if (active) setError(reason instanceof Error ? reason.message : "Could not load shelters.");
-    }).finally(() => {
-      if (active) setLoading(false);
-    });
-    return () => { active = false; };
+    getShelters()
+      .then((value) => {
+        if (active) setShelters(value);
+      })
+      .catch((reason: unknown) => {
+        if (active)
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : "Could not load shelters.",
+          );
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   return { shelters, loading, error, refresh };

@@ -1,11 +1,164 @@
 "use client";
-import { useState,type FormEvent } from "react";
-import type { CreateShelterInput,Shelter,UpdateShelterInput } from "@/src/types/shelter";
-type Props={mode:"create";onSubmit:(v:CreateShelterInput)=>Promise<void>}|{mode:"update";shelter:Shelter;onSubmit:(v:UpdateShelterInput)=>Promise<void>};
-export default function ShelterForm(props:Props){
- const initial=props.mode==="update"?props.shelter:undefined;const [name,setName]=useState(initial?.name||"");const [location,setLocation]=useState(initial?.location||"");const [capacity,setCapacity]=useState(String(initial?.capacity||""));const [occupancy,setOccupancy]=useState(String(initial?.occupancy||0));const [status,setStatus]=useState<"Open"|"Closed">(initial?.operationalStatus||"Open");const [remarks,setRemarks]=useState(initial?.remarks||"");const [error,setError]=useState("");const [saving,setSaving]=useState(false);
- async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();setError("");const cap=Number(capacity),occ=Number(occupancy);if(!Number.isInteger(occ)||occ<0){setError("Occupancy must be a non-negative whole number.");return;}if(props.mode==="create"&&(!name.trim()||!location.trim()||!Number.isInteger(cap)||cap<1)){setError("Enter a name, location, and positive whole-number capacity.");return;}if(occ>(props.mode==="update"?props.shelter.capacity:cap)){setError("Occupancy cannot exceed shelter capacity.");return;}setSaving(true);try{if(props.mode==="create")await props.onSubmit({name:name.trim(),location:location.trim(),capacity:cap,occupancy:occ,operationalStatus:status,remarks:remarks.trim()});else await props.onSubmit({occupancy:occ,operationalStatus:status,remarks:remarks.trim()});}catch(x){setError(x instanceof Error?x.message:"Could not save shelter.");}finally{setSaving(false);}}
- const spaces=Math.max((props.mode==="update"?props.shelter.capacity:Number(capacity)||0)-(Number(occupancy)||0),0);
- return <form onSubmit={submit} className="space-y-5 rounded-xl border bg-white p-6 shadow-sm">{props.mode==="create"?<><Field label="Shelter name" value={name} set={setName}/><Field label="Location" value={location} set={setLocation}/><Field label="Capacity" value={capacity} set={setCapacity} numeric/></>:<div className="rounded-lg bg-slate-50 p-4"><strong>{props.shelter.name}</strong><p>{props.shelter.location} · Capacity {props.shelter.capacity}</p></div>}<Field label="Current occupancy" value={occupancy} set={setOccupancy} numeric/><p className="-mt-4 text-xs text-slate-500">Available spaces: {spaces}</p><label className="block text-sm font-medium">Operational status<select value={status} onChange={e=>setStatus(e.target.value as "Open"|"Closed")} className="mt-1 block w-full rounded-lg border px-3 py-2"><option>Open</option><option>Closed</option></select></label><label className="block text-sm font-medium">Remarks (optional)<textarea value={remarks} maxLength={500} rows={3} onChange={e=>setRemarks(e.target.value)} className="mt-1 block w-full rounded-lg border px-3 py-2"/></label>{error&&<p role="alert" className="rounded bg-red-50 p-3 text-sm text-red-700">{error}</p>}<button disabled={saving} className="rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white disabled:opacity-60">{saving?"Saving...":props.mode==="create"?"Register shelter":"Save update"}</button></form>;
+import { useState, type FormEvent } from "react";
+import type {
+  CreateShelterInput,
+  Shelter,
+  UpdateShelterInput,
+} from "@/src/types/shelter";
+type Props =
+  | { mode: "create"; onSubmit: (v: CreateShelterInput) => Promise<void> }
+  | {
+      mode: "update";
+      shelter: Shelter;
+      onSubmit: (v: UpdateShelterInput) => Promise<void>;
+    };
+export default function ShelterForm(props: Props) {
+  const initial = props.mode === "update" ? props.shelter : undefined;
+  const [name, setName] = useState(initial?.name || "");
+  const [location, setLocation] = useState(initial?.location || "");
+  const [capacity, setCapacity] = useState(String(initial?.capacity || ""));
+  const [occupancy, setOccupancy] = useState(String(initial?.occupancy || 0));
+  const [status, setStatus] = useState<"Open" | "Closed">(
+    initial?.operationalStatus || "Open",
+  );
+  const [remarks, setRemarks] = useState(initial?.remarks || "");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError("");
+    const cap = Number(capacity),
+      occ = Number(occupancy);
+    if (!Number.isInteger(occ) || occ < 0) {
+      setError("Occupancy must be a non-negative whole number.");
+      return;
+    }
+    if (
+      props.mode === "create" &&
+      (!name.trim() || !location.trim() || !Number.isInteger(cap) || cap < 1)
+    ) {
+      setError("Enter a name, location, and positive whole-number capacity.");
+      return;
+    }
+    if (occ > (props.mode === "update" ? props.shelter.capacity : cap)) {
+      setError("Occupancy cannot exceed shelter capacity.");
+      return;
+    }
+    setSaving(true);
+    try {
+      if (props.mode === "create")
+        await props.onSubmit({
+          name: name.trim(),
+          location: location.trim(),
+          capacity: cap,
+          occupancy: occ,
+          operationalStatus: status,
+          remarks: remarks.trim(),
+        });
+      else
+        await props.onSubmit({
+          occupancy: occ,
+          operationalStatus: status,
+          remarks: remarks.trim(),
+        });
+    } catch (x) {
+      setError(x instanceof Error ? x.message : "Could not save shelter.");
+    } finally {
+      setSaving(false);
+    }
+  }
+  const spaces = Math.max(
+    (props.mode === "update" ? props.shelter.capacity : Number(capacity) || 0) -
+      (Number(occupancy) || 0),
+    0,
+  );
+  return (
+    <form
+      onSubmit={submit}
+      className="space-y-5 rounded-xl border bg-white p-6 shadow-sm"
+    >
+      {props.mode === "create" ? (
+        <>
+          <Field label="Shelter name" value={name} set={setName} />
+          <Field label="Location" value={location} set={setLocation} />
+          <Field label="Capacity" value={capacity} set={setCapacity} numeric />
+        </>
+      ) : (
+        <div className="rounded-lg bg-slate-50 p-4">
+          <strong>{props.shelter.name}</strong>
+          <p>
+            {props.shelter.location} · Capacity {props.shelter.capacity}
+          </p>
+        </div>
+      )}
+      <Field
+        label="Current occupancy"
+        value={occupancy}
+        set={setOccupancy}
+        numeric
+      />
+      <p className="-mt-4 text-xs text-slate-500">Available spaces: {spaces}</p>
+      <label className="block text-sm font-medium">
+        Operational status
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value as "Open" | "Closed")}
+          className="mt-1 block w-full rounded-lg border px-3 py-2"
+        >
+          <option>Open</option>
+          <option>Closed</option>
+        </select>
+      </label>
+      <label className="block text-sm font-medium">
+        Remarks (optional)
+        <textarea
+          value={remarks}
+          maxLength={500}
+          rows={3}
+          onChange={(e) => setRemarks(e.target.value)}
+          className="mt-1 block w-full rounded-lg border px-3 py-2"
+        />
+      </label>
+      {error && (
+        <p role="alert" className="rounded bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+      <button
+        disabled={saving}
+        className="rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white disabled:opacity-60"
+      >
+        {saving
+          ? "Saving..."
+          : props.mode === "create"
+            ? "Register shelter"
+            : "Save update"}
+      </button>
+    </form>
+  );
 }
-function Field({label,value,set,numeric=false}:{label:string;value:string;set:(v:string)=>void;numeric?:boolean}){return <label className="block text-sm font-medium">{label}<input type={numeric?"number":"text"} min={numeric?0:undefined} step={numeric?1:undefined} value={value} onChange={e=>set(e.target.value)} className="mt-1 block w-full rounded-lg border px-3 py-2"/></label>;}
+function Field({
+  label,
+  value,
+  set,
+  numeric = false,
+}: {
+  label: string;
+  value: string;
+  set: (v: string) => void;
+  numeric?: boolean;
+}) {
+  return (
+    <label className="block text-sm font-medium">
+      {label}
+      <input
+        type={numeric ? "number" : "text"}
+        min={numeric ? 0 : undefined}
+        step={numeric ? 1 : undefined}
+        value={value}
+        onChange={(e) => set(e.target.value)}
+        className="mt-1 block w-full rounded-lg border px-3 py-2"
+      />
+    </label>
+  );
+}
