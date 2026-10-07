@@ -1,56 +1,52 @@
 import Link from "next/link";
 import type { Shelter } from "@/src/types/shelter";
+import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
 import ShelterStatusBadge from "./ShelterStatusBadge";
+
 export default function ShelterTable({ shelters }: { shelters: Shelter[] }) {
-  if (!shelters.length)
+  if (!shelters.length) {
     return (
-      <div className="rounded-xl border bg-white p-8 text-center text-slate-600">
-        No shelters registered yet.
+      <div className={`${ui.card} p-8 text-center`}>
+        <p className="font-semibold text-[#183447]">No shelters registered yet.</p>
+        <p className={`mt-1 text-sm ${ui.muted}`}>
+          Register a shelter to begin coordinating availability.
+        </p>
       </div>
     );
+  }
+
   return (
-    <div className="overflow-x-auto rounded-xl border bg-white">
-      <table className="min-w-full text-left text-sm">
-        <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-          <tr>
-            {[
-              "Shelter",
-              "Location",
-              "Capacity",
-              "Occupancy",
-              "Available",
-              "Status",
-              "",
-            ].map((x) => (
-              <th key={x || "action"} className="p-4">
-                {x || "Action"}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {shelters.map((s) => (
-            <tr key={s.id} className="hover:bg-slate-50">
-              <td className="p-4 font-semibold">{s.name}</td>
-              <td className="p-4">{s.location}</td>
-              <td className="p-4">{s.capacity}</td>
-              <td className="p-4">{s.occupancy}</td>
-              <td className="p-4">{s.availableSpaces}</td>
-              <td className="p-4">
-                <ShelterStatusBadge shelter={s} />
-              </td>
-              <td className="p-4">
-                <Link
-                  className="font-semibold text-blue-700"
-                  href={"/shelters/" + s.id}
-                >
-                  Manage
-                </Link>
-              </td>
+    <div className={`${ui.card} overflow-hidden`}>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead className="bg-[#f4f7f9] text-xs uppercase tracking-wide text-[#71818b]">
+            <tr>
+              {["Shelter", "Location", "Capacity", "Occupancy", "Available", "Status", ""].map((heading, index) => (
+                <th key={heading || `action-${index}`} className="whitespace-nowrap px-4 py-3 font-semibold">
+                  {heading || "Action"}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-[#e8eef1]">
+            {shelters.map((shelter) => (
+              <tr key={shelter.id} className="transition hover:bg-[#f8fafb]">
+                <td className="whitespace-nowrap px-4 py-4 font-semibold text-[#183447]">{shelter.name}</td>
+                <td className="px-4 py-4 text-[#71818b]">{shelter.location}</td>
+                <td className="px-4 py-4 text-[#344b5a]">{shelter.capacity}</td>
+                <td className="px-4 py-4 text-[#344b5a]">{shelter.occupancy}</td>
+                <td className="px-4 py-4 font-semibold text-[#183447]">{shelter.availableSpaces}</td>
+                <td className="px-4 py-4"><ShelterStatusBadge shelter={shelter} /></td>
+                <td className="px-4 py-4">
+                  <Link className={ui.secondaryLink} href={`/shelters/${shelter.id}`}>
+                    Manage
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

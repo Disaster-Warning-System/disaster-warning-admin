@@ -1,27 +1,28 @@
 import type { Shelter } from "@/src/types/shelter";
+
 export function shelterStatus(
-  s: Pick<Shelter, "capacity" | "occupancy" | "operationalStatus">,
+  shelter: Pick<Shelter, "capacity" | "occupancy" | "operationalStatus">,
 ) {
-  return s.occupancy >= s.capacity ? "Full" : s.operationalStatus;
+  return shelter.occupancy >= shelter.capacity
+    ? "Full"
+    : shelter.operationalStatus;
 }
+
 export default function ShelterStatusBadge({
   shelter,
 }: {
   shelter: Pick<Shelter, "capacity" | "occupancy" | "operationalStatus">;
 }) {
   const status = shelterStatus(shelter);
-  const color =
+  const tone =
     status === "Open"
-      ? "bg-emerald-100 text-emerald-800"
+      ? "bg-[#e5f7ef] text-[#216448]"
       : status === "Full"
-        ? "bg-amber-100 text-amber-800"
-        : "bg-slate-200 text-slate-700";
+        ? "bg-[#fff3d6] text-[#755400]"
+        : "bg-[#e9eef2] text-[#263746]";
+
   return (
-    <span
-      className={
-        "inline-flex rounded-full px-3 py-1 text-xs font-semibold " + color
-      }
-    >
+    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${tone}`}>
       {status}
     </span>
   );

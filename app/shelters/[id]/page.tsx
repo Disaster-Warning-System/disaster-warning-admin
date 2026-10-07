@@ -1,15 +1,18 @@
 "use client";
+
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import ShelterForm from "@/src/components/shelters/ShelterForm";
 import ShelterStatusBadge from "@/src/components/shelters/ShelterStatusBadge";
+import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
 import {
   deleteShelter,
   getShelter,
   updateShelter,
 } from "@/src/services/api/shelterApi";
 import type { Shelter, UpdateShelterInput } from "@/src/types/shelter";
+
 export default function ShelterDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -17,108 +20,131 @@ export default function ShelterDetailsPage() {
   const [error, setError] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
     let active = true;
     getShelter(id)
-      .then((v) => {
-        if (active) setShelter(v);
+      .then((value) => {
+        if (active) setShelter(value);
       })
-      .catch((e) => {
-        if (active)
-          setError(e instanceof Error ? e.message : "Could not load shelter.");
+      .catch((reason) => {
+        if (active) {
+          setError(reason instanceof Error ? reason.message : "Could not load shelter.");
+        }
       });
     return () => {
       active = false;
     };
   }, [id]);
-  async function submit(v: UpdateShelterInput) {
-    await updateShelter(id, v);
+
+  async function submit(values: UpdateShelterInput) {
+    await updateShelter(id, values);
     router.push("/shelters");
   }
+
   async function remove() {
     if (
       !shelter ||
-      !window.confirm(
-        `Delete ${shelter.name}? This permanently removes the shelter record.`,
-      )
-    )
+      !window.confirm(`Delete ${shelter.name}? This permanently removes the shelter record.`)
+    ) {
       return;
+    }
+
     setDeleting(true);
     setDeleteError("");
     try {
       await deleteShelter(id);
       router.replace("/shelters");
-    } catch (e) {
+    } catch (reason) {
       setDeleteError(
-        e instanceof Error ? e.message : "Could not delete shelter.",
+        reason instanceof Error ? reason.message : "Could not delete shelter.",
       );
     } finally {
       setDeleting(false);
     }
   }
-  if (error)
+
+  if (error) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-10">
-        <Link href="/shelters">← Back</Link>
-        <p role="alert" className="mt-6 rounded bg-red-50 p-4 text-red-700">
-          {error}
-        </p>
+      <main className={ui.page}>
+        <div className="mx-auto max-w-3xl">
+          <Link href="/shelters" className={ui.secondaryLink}>← Back to shelters</Link>
+          <p role="alert" className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
+            {error}
+          </p>
+        </div>
       </main>
     );
-  if (!shelter)
+  }
+
+  if (!shelter) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-10">Loading shelter...</main>
+      <main className={ui.page}>
+        <div role="status" className={`${ui.card} mx-auto max-w-3xl p-8 text-center ${ui.muted}`}>
+          Loading shelter...
+        </div>
+      </main>
     );
+  }
+
   return (
-    <main className="mx-auto max-w-3xl space-y-6 px-6 py-10">
-      <Link href="/shelters" className="font-semibold text-blue-700">
-        ← Back to shelters
-      </Link>
-      <header className="flex justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">{shelter.name}</h1>
-          <p className="mt-2 text-slate-600">{shelter.location}</p>
-        </div>
-        <ShelterStatusBadge shelter={shelter} />
-      </header>
-      <section className="grid grid-cols-3 gap-3">
-        <Metric label="Capacity" value={shelter.capacity} />
-        <Metric label="Occupancy" value={shelter.occupancy} />
-        <Metric label="Available" value={shelter.availableSpaces} />
-      </section>
-      <ShelterForm mode="update" shelter={shelter} onSubmit={submit} />
-      <section className="space-y-3 rounded-xl border border-red-200 bg-white p-5">
-        <div>
-          <h2 className="font-semibold text-red-800">Delete shelter</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Permanently remove this shelter and its record.
-          </p>
-        </div>
-        {deleteError && (
-          <p
-            role="alert"
-            className="rounded bg-red-50 p-3 text-sm text-red-700"
+    <main className={ui.page}>
+      <div className="mx-auto w-full max-w-3xl space-y-6">
+        <Link href="/shelters" className={ui.secondaryLink}>
+          ← Back to shelters
+        </Link>
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#176fa8]">
+              Shelter details
+            </p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#183447]">
+              {shelter.name}
+            </h1>
+            <p className={`mt-2 ${ui.muted}`}>{shelter.location}</p>
+          </div>
+          <ShelterStatusBadge shelter={shelter} />
+        </header>
+
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Metric label="Capacity" value={shelter.capacity} />
+          <Metric label="Occupancy" value={shelter.occupancy} />
+          <Metric label="Available spaces" value={shelter.availableSpaces} />
+        </section>
+
+        <ShelterForm mode="update" shelter={shelter} onSubmit={submit} />
+
+        <section className="space-y-3 rounded-2xl border border-red-200 bg-white p-5 shadow-sm">
+          <div>
+            <h2 className="font-semibold text-[#183447]">Delete shelter</h2>
+            <p className={`mt-1 text-sm ${ui.muted}`}>
+              Permanently remove this shelter and its record.
+            </p>
+          </div>
+          {deleteError ? (
+            <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
+              {deleteError}
+            </p>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void remove()}
+            disabled={deleting}
+            className="inline-flex items-center justify-center rounded-xl border border-red-200 px-4 py-2.5 font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {deleteError}
-          </p>
-        )}
-        <button
-          type="button"
-          onClick={() => void remove()}
-          disabled={deleting}
-          className="rounded-lg border border-red-300 px-4 py-2 font-semibold text-red-700 disabled:opacity-60"
-        >
-          {deleting ? "Deleting..." : "Delete shelter"}
-        </button>
-      </section>
+            {deleting ? "Deleting..." : "Delete shelter"}
+          </button>
+        </section>
+      </div>
     </main>
   );
 }
+
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border bg-white p-4">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 text-xl font-bold">{value}</p>
+    <div className={`${ui.card} p-4`}>
+      <p className={`text-xs ${ui.muted}`}>{label}</p>
+      <p className="mt-1 text-xl font-bold text-[#183447]">{value}</p>
     </div>
   );
 }
