@@ -17,15 +17,15 @@ export default function CreateShelterPage() {
 
   return (
     <main className={ui.page}>
-      <div className="mx-auto w-full max-w-3xl space-y-6">
+      <div className="mx-auto w-full max-w-3xl space-y-5 sm:space-y-6">
         <Link href="/shelters" className={ui.secondaryLink}>
           ← Back to shelters
         </Link>
         <header>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#176fa8]">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1877B9]">
             District response
           </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#183447]">
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#16283D] sm:text-3xl">
             Register a shelter
           </h1>
           <p className={`mt-2 ${ui.muted}`}>

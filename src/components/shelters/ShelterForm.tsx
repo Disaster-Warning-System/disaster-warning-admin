@@ -107,43 +107,47 @@ export default function ShelterForm(props: Props) {
   const availableSpaces = Math.max(currentCapacity - parsedOrZero(occupancy), 0);
 
   return (
-    <form onSubmit={submit} className={`${ui.card} space-y-5 p-5 sm:p-6`}>
+    <form onSubmit={submit} className={`${ui.card} space-y-5 p-4 sm:p-6`}>
       {props.mode === "create" ? (
-        <>
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Shelter name" value={name} set={setName} />
           <Field label="Shelter location or address" value={location} set={setLocation} />
           <Field label="Capacity" value={capacity} set={setCapacity} numeric />
-        </>
+        </div>
       ) : (
-        <>
-          <div className="rounded-xl bg-[#f4f7f9] p-4">
-            <strong className="text-[#183447]">{props.shelter.name}</strong>
+        <div className="space-y-4">
+          <div className="rounded-xl bg-[#F5F7FA] p-4">
+            <strong className="break-words text-[#16283D]">{props.shelter.name}</strong>
             <p className={`mt-1 text-sm ${ui.muted}`}>
               Capacity {props.shelter.capacity}
             </p>
           </div>
           <Field label="Shelter location or address" value={location} set={setLocation} />
-        </>
+        </div>
       )}
 
       <OpenStreetMapPicker value={locationPoint} onChange={setLocationPoint} />
 
-      <Field label="Current occupancy" value={occupancy} set={setOccupancy} numeric />
-      <p className="-mt-3 text-sm text-[#71818b]">
-        Available spaces: <span className="font-semibold text-[#183447]">{availableSpaces}</span>
-      </p>
+      <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
+        <div>
+          <Field label="Current occupancy" value={occupancy} set={setOccupancy} numeric />
+          <p className="mt-2 text-sm text-[#6B7C8F]">
+            Available spaces: <span className="font-semibold text-[#16283D]">{availableSpaces}</span>
+          </p>
+        </div>
 
-      <label className={ui.label}>
-        Operational status
-        <select
-          value={status}
-          onChange={(event) => setStatus(event.target.value as "Open" | "Closed")}
-          className={ui.input}
-        >
-          <option>Open</option>
-          <option>Closed</option>
-        </select>
-      </label>
+        <label className={ui.label}>
+          Operational status
+          <select
+            value={status}
+            onChange={(event) => setStatus(event.target.value as "Open" | "Closed")}
+            className={ui.input}
+          >
+            <option>Open</option>
+            <option>Closed</option>
+          </select>
+        </label>
+      </div>
 
       <label className={ui.label}>
         Remarks <span className={`font-normal ${ui.muted}`}>(optional)</span>
