@@ -16,13 +16,13 @@ export default function ShelterStatusBadge({
   const status = shelterStatus(shelter);
   const tone =
     status === "Open"
-      ? "bg-[#e5f7ef] text-[#216448]"
+      ? "bg-[#E5F4ED] text-[#087A4B]"
       : status === "Full"
         ? "bg-[#fff3d6] text-[#755400]"
-        : "bg-[#e9eef2] text-[#263746]";
+        : "bg-[#EEF3F8] text-[#16283D]";
 
   return (
-    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${tone}`}>
+    <span className={`inline-flex shrink-0 rounded-full px-3 py-1 text-xs font-bold ${tone}`}>
       {status}
     </span>
   );

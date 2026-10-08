@@ -143,7 +143,7 @@ export default function OpenStreetMapPicker({ value, onChange }: Props) {
       {mapError ? <p role="status" className={`text-sm ${ui.muted}`}>{mapError}</p> : null}
       <div
         ref={mapElement}
-        className="shelter-map h-72 w-full overflow-hidden rounded-xl border border-[#dce6ea] bg-[#f4f7f9]"
+        className="shelter-map h-60 w-full overflow-hidden rounded-xl border border-[#DDE5EE] bg-[#F5F7FA] sm:h-80"
         aria-label="OpenStreetMap. Click to select the shelter location."
       />
       <div className="grid gap-4 sm:grid-cols-2">
