@@ -1,4 +1,6 @@
 import Link from "next/link";
+import Image from "next/image";
+import { getShelterImageUrl } from "@/src/services/api/shelterApi";
 import type { Shelter } from "@/src/types/shelter";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
 import ShelterStatusBadge from "./ShelterStatusBadge";
@@ -21,6 +23,11 @@ export default function ShelterTable({ shelters }: { shelters: Shelter[] }) {
       <div className="space-y-3 md:hidden">
         {shelters.map((shelter) => (
           <article key={shelter.id} className={`${ui.card} space-y-4 p-4`}>
+            {shelter.imageId ? (
+              <div className="relative h-40 overflow-hidden rounded-xl bg-[#F5F7FA]">
+                <Image src={getShelterImageUrl(shelter.imageId)} alt={`${shelter.name} shelter`} fill unoptimized className="object-cover" sizes="(max-width: 768px) 100vw, 400px" />
+              </div>
+            ) : null}
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h2 className="break-words font-semibold text-[#16283D]">{shelter.name}</h2>

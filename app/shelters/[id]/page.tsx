@@ -8,7 +8,9 @@ import ShelterStatusBadge from "@/src/components/shelters/ShelterStatusBadge";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
 import {
   deleteShelter,
+  deleteShelterImage,
   getShelter,
+  uploadShelterImage,
   updateShelter,
 } from "@/src/services/api/shelterApi";
 import type { Shelter, UpdateShelterInput } from "@/src/types/shelter";
@@ -37,8 +39,19 @@ export default function ShelterDetailsPage() {
     };
   }, [id]);
 
-  async function submit(values: UpdateShelterInput) {
-    await updateShelter(id, values);
+  async function submit(values: UpdateShelterInput, imageFile: File | null, removeImage: boolean) {
+    let imageId: string | undefined;
+    try {
+      if (imageFile) imageId = await uploadShelterImage(imageFile);
+      await updateShelter(id, {
+        ...values,
+        ...(imageId ? { imageId } : {}),
+        ...(removeImage ? { imageId: null } : {}),
+      });
+    } catch (error) {
+      if (imageId) await deleteShelterImage(imageId).catch(() => undefined);
+      throw error;
+    }
     router.push("/shelters");
   }
 

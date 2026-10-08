@@ -8,11 +8,18 @@ import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
 type Props = {
   value: ShelterLocationPoint | null;
   onChange: (point: ShelterLocationPoint | null) => void;
+  title?: string;
+  description?: string;
 };
 
 const SRI_LANKA_CENTER: [number, number] = [7.8731, 80.7718];
 
-export default function OpenStreetMapPicker({ value, onChange }: Props) {
+export default function OpenStreetMapPicker({
+  value,
+  onChange,
+  title = "OpenStreetMap shelter location",
+  description = "Click the shelter on the map or drag the pin to adjust its position. You can also enter coordinates below.",
+}: Props) {
   const mapElement = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markerRef = useRef<LeafletMarker | null>(null);
@@ -136,10 +143,8 @@ export default function OpenStreetMapPicker({ value, onChange }: Props) {
 
   return (
     <fieldset className="space-y-2">
-      <legend className={ui.label}>OpenStreetMap shelter location</legend>
-      <p className={`text-sm ${ui.muted}`}>
-        Click the shelter on the map or drag the pin to adjust its position. You can also enter coordinates below.
-      </p>
+      <legend className={ui.label}>{title}</legend>
+      <p className={`text-sm ${ui.muted}`}>{description}</p>
       {mapError ? <p role="status" className={`text-sm ${ui.muted}`}>{mapError}</p> : null}
       <div
         ref={mapElement}

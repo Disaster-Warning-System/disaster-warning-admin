@@ -4,14 +4,21 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ShelterForm from "@/src/components/shelters/ShelterForm";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
-import { createShelter } from "@/src/services/api/shelterApi";
+import { createShelter, deleteShelterImage, uploadShelterImage } from "@/src/services/api/shelterApi";
 import type { CreateShelterInput } from "@/src/types/shelter";
 
 export default function CreateShelterPage() {
   const router = useRouter();
 
-  async function submit(values: CreateShelterInput) {
-    await createShelter(values);
+  async function submit(values: CreateShelterInput, imageFile: File | null) {
+    let imageId: string | undefined;
+    try {
+      if (imageFile) imageId = await uploadShelterImage(imageFile);
+      await createShelter({ ...values, ...(imageId ? { imageId } : {}) });
+    } catch (error) {
+      if (imageId) await deleteShelterImage(imageId).catch(() => undefined);
+      throw error;
+    }
     router.push("/shelters");
   }
 
