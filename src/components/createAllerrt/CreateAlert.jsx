@@ -1,9 +1,8 @@
  "use client";
 
- import axios from "axios";
+ import apiClient from "../../api/axios";
  import { useState } from "react";
 
- const ALERTS_URL = "http://localhost:5000/api/alerts";
  const targetAreaOptions = ["Colombo", "Gampaha", "Kelani River Basin"];
  const channelOptions = ["SMS", "Push"];
 
@@ -13,7 +12,6 @@
      severity: "Warning",
      targetAreas: [],
      channels: [],
-     isDraft: false,
  };
 
  const CreateAlert = () => {
@@ -55,17 +53,15 @@
          }
      };
 
-     const submitAlert = async (isDraft) => {
+     const submitAlert = async () => {
          setIsSubmitting(true);
          setStatus(null);
          try {
-             const response = await axios.post(ALERTS_URL, { ...formData, isDraft });
+             const response = await apiClient.post("/alerts", formData);
              const alert = response.data.alert;
              setStatus({
                  type: "success",
-                 message: isDraft
-                     ? "Alert draft saved successfully."
-                     : `Alert ${alert.alertId} dispatched successfully.`,
+                 message: `Alert ${alert.alertId} dispatched successfully.`,
              });
              setShowPreview(false);
              setFormData(initialFormData);
@@ -185,16 +181,9 @@
 
                  <div className="flex flex-col gap-3 sm:flex-row">
                      <button
-                         type="button"
-                         onClick={() => submitAlert(true)}
-                         disabled={isSubmitting}
-                         className="rounded-lg border border-slate-300 px-4 py-2.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                     >
-                         {isSubmitting ? "SAVING..." : "Save Draft"}
-                     </button>
-                     <button
                          type="submit"
-                         className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 font-semibold text-white hover:bg-blue-700"
+                         disabled={isSubmitting}
+                         className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                      >
                          Review Warning
                      </button>
@@ -229,7 +218,7 @@
                              </button>
                              <button
                                  type="button"
-                                 onClick={() => submitAlert(false)}
+                                 onClick={submitAlert}
                                  disabled={isSubmitting}
                                  className="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                              >
