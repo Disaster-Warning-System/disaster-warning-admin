@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import NearbyShelterFinder from "@/src/components/shelters/NearbyShelterFinder";
 import ShelterAvailabilityFilter, { type ShelterAvailabilityFilterValue } from "@/src/components/shelters/ShelterAvailabilityFilter";
 import ShelterTable from "@/src/components/shelters/ShelterTable";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
@@ -49,9 +48,14 @@ export default function SheltersPage() {
               Review capacity and coordinate shelter availability.
             </p>
           </div>
-          <Link href="/shelters/create" className={ui.primaryButton}>
-            Register new shelter
-          </Link>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link href="/shelters/nearby" className={ui.primaryButton}>
+              Find nearby shelters
+            </Link>
+            <Link href="/shelters/create" className={ui.primaryButton}>
+              Register new shelter
+            </Link>
+          </div>
         </header>
 
         <section className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4 lg:grid-cols-3">
@@ -122,7 +126,6 @@ export default function SheltersPage() {
         ) : (
           <ShelterTable shelters={filteredShelters} />
         )}
-        {!loading && !error ? <NearbyShelterFinder shelters={shelters} /> : null}
       </div>
     </main>
   );
