@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import NearbyShelterFinder from "@/src/components/shelters/NearbyShelterFinder";
+import ShelterAvailabilityFilter, { type ShelterAvailabilityFilterValue } from "@/src/components/shelters/ShelterAvailabilityFilter";
 import ShelterTable from "@/src/components/shelters/ShelterTable";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
 import { useShelters } from "@/src/hooks/useShelters";
@@ -9,9 +11,10 @@ import { useShelters } from "@/src/hooks/useShelters";
 export default function SheltersPage() {
   const { shelters, loading, error, refresh } = useShelters();
   const [searchTerm, setSearchTerm] = useState("");
+  const [availabilityFilter, setAvailabilityFilter] = useState<ShelterAvailabilityFilterValue>("all");
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
-  const filteredShelters = normalizedSearchTerm
-    ? shelters.filter((shelter) =>
+  const filteredShelters = shelters.filter((shelter) => {
+    const matchesSearch = !normalizedSearchTerm ||
         [
           shelter.name,
           shelter.location,
@@ -21,9 +24,15 @@ export default function SheltersPage() {
         ]
           .join(" ")
           .toLowerCase()
-          .includes(normalizedSearchTerm),
-      )
-    : shelters;
+          .includes(normalizedSearchTerm);
+    const matchesAvailability =
+      availabilityFilter === "all" ||
+      (availabilityFilter === "available" && shelter.availableSpaces > 0 && shelter.operationalStatus === "Open") ||
+      (availabilityFilter === "full" && shelter.availableSpaces === 0) ||
+      (availabilityFilter === "open" && shelter.operationalStatus === "Open") ||
+      (availabilityFilter === "closed" && shelter.operationalStatus === "Closed");
+    return matchesSearch && matchesAvailability;
+  });
 
   return (
     <main className={ui.page}>
@@ -57,7 +66,7 @@ export default function SheltersPage() {
           />
         </section>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="relative block min-w-0 flex-1">
             <span className="sr-only">Search shelters</span>
             <input
@@ -79,6 +88,7 @@ export default function SheltersPage() {
               </button>
             ) : null}
           </label>
+          <ShelterAvailabilityFilter value={availabilityFilter} onChange={setAvailabilityFilter} />
           <button
             onClick={() => void refresh()}
             className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-[#DDE5EE] bg-white px-4 py-2.5 text-sm font-semibold text-[#1877B9] transition hover:bg-[#E8F2FC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877B9]"
@@ -90,9 +100,7 @@ export default function SheltersPage() {
 
         {!loading && !error ? (
           <p aria-live="polite" className={`text-sm ${ui.muted}`}>
-            {normalizedSearchTerm
-              ? `Showing ${filteredShelters.length} of ${shelters.length} shelters`
-              : `${shelters.length} shelters`}
+            {`Showing ${filteredShelters.length} of ${shelters.length} shelters`}
           </p>
         ) : null}
 
@@ -104,16 +112,17 @@ export default function SheltersPage() {
           <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700">
             {error}
           </p>
-        ) : filteredShelters.length === 0 && normalizedSearchTerm ? (
+        ) : filteredShelters.length === 0 ? (
           <div className={`${ui.card} p-6 text-center sm:p-8`}>
-            <p className="font-semibold text-[#16283D]">No shelters match “{searchTerm.trim()}”.</p>
+            <p className="font-semibold text-[#16283D]">No shelters match these filters.</p>
             <p className={`mt-1 text-sm ${ui.muted}`}>
-              Try a different name, location, or status.
+              Try another search term or availability filter.
             </p>
           </div>
         ) : (
           <ShelterTable shelters={filteredShelters} />
         )}
+        {!loading && !error ? <NearbyShelterFinder shelters={shelters} /> : null}
       </div>
     </main>
   );

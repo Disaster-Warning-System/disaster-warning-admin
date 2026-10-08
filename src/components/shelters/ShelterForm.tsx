@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import OpenStreetMapPicker from "@/src/components/shelters/OpenStreetMapPicker";
+import ShelterImageField from "@/src/components/shelters/ShelterImageField";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
 import type {
   CreateShelterInput,
@@ -11,11 +12,11 @@ import type {
 } from "@/src/types/shelter";
 
 type Props =
-  | { mode: "create"; onSubmit: (value: CreateShelterInput) => Promise<void> }
+  | { mode: "create"; onSubmit: (value: CreateShelterInput, imageFile: File | null) => Promise<void> }
   | {
       mode: "update";
       shelter: Shelter;
-      onSubmit: (value: UpdateShelterInput) => Promise<void>;
+      onSubmit: (value: UpdateShelterInput, imageFile: File | null, removeImage: boolean) => Promise<void>;
     };
 
 export default function ShelterForm(props: Props) {
@@ -31,6 +32,8 @@ export default function ShelterForm(props: Props) {
     initial?.operationalStatus || "Open",
   );
   const [remarks, setRemarks] = useState(initial?.remarks || "");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -86,7 +89,7 @@ export default function ShelterForm(props: Props) {
           occupancy: parsedOccupancy,
           operationalStatus: status,
           remarks: remarks.trim(),
-        });
+        }, imageFile);
       } else {
         await props.onSubmit({
           location: location.trim(),
@@ -94,7 +97,8 @@ export default function ShelterForm(props: Props) {
           occupancy: parsedOccupancy,
           operationalStatus: status,
           remarks: remarks.trim(),
-        });
+          imageId: removeImage ? null : undefined,
+        }, imageFile, removeImage);
       }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not save shelter.");
@@ -127,6 +131,14 @@ export default function ShelterForm(props: Props) {
       )}
 
       <OpenStreetMapPicker value={locationPoint} onChange={setLocationPoint} />
+
+      <ShelterImageField
+        imageId={initial?.imageId}
+        selectedFile={imageFile}
+        onFileChange={setImageFile}
+        removeImage={removeImage}
+        onRemoveChange={setRemoveImage}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
         <div>
