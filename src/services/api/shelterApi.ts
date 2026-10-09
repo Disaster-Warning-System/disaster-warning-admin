@@ -2,7 +2,7 @@ import type {
   CreateShelterInput,
   Shelter,
   UpdateShelterInput,
-} from "@/src/types/shelter";
+} from "../../types/shelter";
 const API = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 ).replace(/\/+$/, "");
@@ -15,9 +15,12 @@ type Envelope<T> = {
 
 /** Keeps the HTTP status available so the offline queue can distinguish outages from invalid updates. */
 export class ShelterApiError extends Error {
-  constructor(message: string, readonly statusCode: number | null) {
+  readonly statusCode: number | null;
+
+  constructor(message: string, statusCode: number | null) {
     super(message);
     this.name = "ShelterApiError";
+    this.statusCode = statusCode;
   }
 }
 
