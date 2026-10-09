@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
-import { HAZARD_TYPES, REPORT_STATUS, REPORT_STATUSES } from "@/src/utils/verification";
+import { HAZARD_TYPES, REPORT_STATUS } from "@/src/utils/verification";
 
 const STATUS_LABELS = {
   [REPORT_STATUS.PENDING]: "Pending",
