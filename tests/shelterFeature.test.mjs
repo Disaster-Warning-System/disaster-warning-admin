@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { getShelterFormValidationError } from "../src/utils/shelterFormValidation.ts";
+import { shelterStatus } from "../src/utils/shelterStatus.ts";
 import { nextShelterFormStage } from "../src/utils/shelterFormWorkflow.ts";
 import {
   removeShelterQueueItem,
@@ -19,6 +20,22 @@ const validForm = {
   occupancyText: "35",
   maximumCapacity: 100,
 };
+
+describe("admin shelter availability status", () => {
+  it("shows Full when occupancy reaches capacity", () => {
+    assert.equal(
+      shelterStatus({ capacity: 100, occupancy: 100, operationalStatus: "Open" }),
+      "Full",
+    );
+  });
+
+  it("retains operational status while spaces remain", () => {
+    assert.equal(
+      shelterStatus({ capacity: 100, occupancy: 99, operationalStatus: "Closed" }),
+      "Closed",
+    );
+  });
+});
 
 describe("admin shelter form validation", () => {
   it("accepts a valid registration for review", () => {

@@ -1,12 +1,5 @@
+import { shelterStatus } from "@/src/utils/shelterStatus";
 import type { Shelter } from "@/src/types/shelter";
-
-export function shelterStatus(
-  shelter: Pick<Shelter, "capacity" | "occupancy" | "operationalStatus">,
-) {
-  return shelter.occupancy >= shelter.capacity
-    ? "Full"
-    : shelter.operationalStatus;
-}
 
 export default function ShelterStatusBadge({
   shelter,
