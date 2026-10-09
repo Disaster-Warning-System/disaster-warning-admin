@@ -13,6 +13,11 @@ import {
   uploadShelterImage,
   updateShelter,
 } from "@/src/services/api/shelterApi";
+import { ShelterApiError } from "@/src/services/api/shelterApi";
+import {
+  getPendingShelterUpdate,
+  queueShelterUpdate,
+} from "@/src/services/api/shelterUpdateQueue";
 import type { Shelter, UpdateShelterInput } from "@/src/types/shelter";
 
 export default function ShelterDetailsPage() {
@@ -27,7 +32,11 @@ export default function ShelterDetailsPage() {
     let active = true;
     getShelter(id)
       .then((value) => {
-        if (active) setShelter(value);
+        if (active) {
+          // Show the latest local version while a prior offline update awaits synchronization.
+          const pending = getPendingShelterUpdate(id);
+          setShelter(pending ? { ...value, ...pending.changes } : value);
+        }
       })
       .catch((reason) => {
         if (active) {
@@ -40,6 +49,30 @@ export default function ShelterDetailsPage() {
   }, [id]);
 
   async function submit(values: UpdateShelterInput, imageFile: File | null, removeImage: boolean) {
+    if ((imageFile || removeImage) && !window.navigator.onLine) {
+      throw new Error("Shelter image changes need an internet connection. Reconnect to upload or remove the image; your other form entries are still here.");
+    }
+
+    if (!imageFile && !removeImage) {
+      try {
+        await updateShelter(id, values);
+        return "saved" as const;
+      } catch (reason) {
+        if (
+          reason instanceof ShelterApiError &&
+          (reason.statusCode === null || reason.statusCode >= 500)
+        ) {
+          try {
+            queueShelterUpdate(id, values);
+            return "queued" as const;
+          } catch {
+            throw new Error("The server is unavailable and this device could not store the update. Keep the form open and try again when storage or network access is available.");
+          }
+        }
+        throw reason;
+      }
+    }
+
     let imageId: string | undefined;
     try {
       if (imageFile) imageId = await uploadShelterImage(imageFile);
@@ -52,7 +85,7 @@ export default function ShelterDetailsPage() {
       if (imageId) await deleteShelterImage(imageId).catch(() => undefined);
       throw error;
     }
-    router.push("/shelters");
+    return "saved" as const;
   }
 
   async function remove() {
