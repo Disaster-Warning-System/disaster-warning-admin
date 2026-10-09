@@ -160,6 +160,10 @@ export default function ShelterDetailsPage() {
 
         <ShelterForm mode="update" shelter={shelter} onSubmit={submit} />
 
+        <Link href={`/shelters/${shelter.id}/history`} className={ui.secondaryLink}>
+          View occupancy history
+        </Link>
+
         <section className="space-y-3 rounded-2xl border border-red-200 bg-white p-4 shadow-sm sm:p-5">
           <div>
             <h2 className="font-semibold text-[#16283D]">Delete shelter</h2>

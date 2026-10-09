@@ -1,5 +1,6 @@
 import type {
   CreateShelterInput,
+  ShelterOccupancyHistory,
   Shelter,
   UpdateShelterInput,
 } from "../../types/shelter";
@@ -55,6 +56,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const getShelters = () => request<Shelter[]>("/api/shelters");
 export const getShelter = (id: string) =>
   request<Shelter>("/api/shelters/" + encodeURIComponent(id));
+export const getShelterOccupancyHistory = (id: string) =>
+  request<ShelterOccupancyHistory>(
+    "/api/shelters/" + encodeURIComponent(id) + "/history",
+  );
 export const getShelterImageUrl = (imageId: string) =>
   API + "/api/shelters/images/" + encodeURIComponent(imageId);
 export async function uploadShelterImage(file: File): Promise<string> {
