@@ -37,3 +37,16 @@ export type UpdateShelterInput = Pick<
   CreateShelterInput,
   "location" | "locationPoint" | "occupancy" | "operationalStatus" | "remarks"
 > & { imageId?: string | null };
+
+export type ShelterOccupancyHistoryEntry = {
+  id?: string;
+  _id?: string;
+  occupancy: number;
+  operationalStatus: ShelterOperationalStatus;
+  changedAt: string;
+};
+
+export type ShelterOccupancyHistory = {
+  shelter: Pick<Shelter, "id" | "name" | "capacity">;
+  entries: ShelterOccupancyHistoryEntry[];
+};

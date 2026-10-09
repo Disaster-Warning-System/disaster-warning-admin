@@ -4,6 +4,7 @@ import {
   createShelter,
   deleteShelter,
   getShelter,
+  getShelterOccupancyHistory,
   getShelters,
   ShelterApiError,
   updateShelter,
@@ -63,6 +64,18 @@ describe("admin shelter API CRUD requests", () => {
 
     assert.deepEqual(await getShelter(shelterId), shelter);
     assert.equal(requestedUrl, "http://localhost:5000/api/shelters/shelter%2Fwith%20spaces");
+  });
+
+  it("reads occupancy history for a shelter using its encoded ID", async () => {
+    const history = { shelter: { id: "shelter-1", name: shelter.name, capacity: 100 }, entries: [] };
+    let requestedUrl;
+    globalThis.fetch = async (url) => {
+      requestedUrl = url;
+      return mockResponse(history);
+    };
+
+    assert.deepEqual(await getShelterOccupancyHistory(shelterId), history);
+    assert.equal(requestedUrl, "http://localhost:5000/api/shelters/shelter%2Fwith%20spaces/history");
   });
 
   it("creates a shelter with the submitted details", async () => {
