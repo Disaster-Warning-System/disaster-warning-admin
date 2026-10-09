@@ -2,7 +2,8 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { isDistrictOfficer, saveAdminSession, getAdminSession } from "@/src/lib/auth";
+import { saveAdminSession, getAdminSession } from "@/src/lib/auth";
+import { isAdmin } from "@/src/lib/roles";
 import { AdminAuthError, loginAdmin } from "@/src/services/api/authApi";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
 
@@ -14,7 +15,7 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (isDistrictOfficer(getAdminSession())) router.replace("/shelters");
+    if (isAdmin(getAdminSession())) router.replace("/dashboard");
   }, [router]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -24,12 +25,12 @@ export default function LoginPage() {
 
     try {
       const session = await loginAdmin({ email: email.trim(), password });
-      if (!isDistrictOfficer(session)) {
-        setError("This account does not have District Officer access. Contact an administrator.");
+      if (!isAdmin(session)) {
+        setError("This account does not have officer access. Contact an administrator.");
         return;
       }
       saveAdminSession(session);
-      router.replace("/shelters");
+      router.replace("/dashboard");
     } catch (reason) {
       setError(
         reason instanceof AdminAuthError || reason instanceof Error
@@ -46,13 +47,13 @@ export default function LoginPage() {
       <section className={`${ui.card} mx-auto w-full max-w-md space-y-6 p-5 sm:p-7`}>
         <header>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1877B9]">
-            District response
+            Disaster Warning System
           </p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#16283D]">
-            District Officer sign in
+            Admin sign in
           </h1>
           <p className={`mt-2 text-sm ${ui.muted}`}>
-            Sign in with your authorized officer account to manage emergency shelters.
+            Sign in with your authorized officer account.
           </p>
         </header>
 
