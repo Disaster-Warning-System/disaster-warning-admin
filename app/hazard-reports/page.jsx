@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
 import Pagination from "@/src/components/verification/Pagination";
@@ -29,23 +29,38 @@ function ReportQueue() {
   const filters = readFilters(searchParams);
   const queryKey = searchParams.toString();
 
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(() => {
-    const current = readFilters(new URLSearchParams(queryKey));
-    setLoading(true);
-    setError("");
-    listReports({ ...current, limit: PAGE_SIZE })
-      .then(setResult)
-      .catch((reason) => setError(reason?.message || "Unable to load reports."))
-      .finally(() => setLoading(false));
-  }, [queryKey]);
+  // `key` is the query the shown result belongs to, so loading is derived instead of stored
+  const [state, setState] = useState({ key: null, result: null, error: "" });
+  const [reloadCount, setReloadCount] = useState(0);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let active = true;
+    const current = readFilters(new URLSearchParams(queryKey));
+    listReports({ ...current, limit: PAGE_SIZE })
+      .then((result) => {
+        if (active) setState({ key: queryKey, result, error: "" });
+      })
+      .catch((reason) => {
+        if (active) {
+          setState((previous) => ({
+            ...previous,
+            key: queryKey,
+            error: reason?.message || "Unable to load reports.",
+          }));
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [queryKey, reloadCount]);
+
+  const { result, error } = state;
+  const loading = state.key !== queryKey;
+
+  function retry() {
+    setState((previous) => ({ ...previous, key: null, error: "" }));
+    setReloadCount((count) => count + 1);
+  }
 
   // Filters live in the URL so the back button and shared links keep the same view
   function updateFilters(changes) {
@@ -72,7 +87,7 @@ function ReportQueue() {
       {error ? (
         <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {error}{" "}
-          <button type="button" onClick={load} className="font-semibold underline">
+          <button type="button" onClick={retry} className="font-semibold underline">
             Try again
           </button>
         </p>

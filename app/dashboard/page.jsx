@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import AdminAuthGate, { useAdminSession } from "@/src/components/admin/AdminAuthGate";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
@@ -12,17 +12,26 @@ import { getDashboard } from "@/src/services/api/verificationApi";
 function VerificationOverview() {
   const [stats, setStats] = useState(null);
   const [error, setError] = useState("");
-
-  const load = useCallback(() => {
-    setError("");
-    getDashboard()
-      .then(setStats)
-      .catch((reason) => setError(reason?.message || "Unable to load the dashboard."));
-  }, []);
+  const [reloadCount, setReloadCount] = useState(0);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let active = true;
+    getDashboard()
+      .then((data) => {
+        if (active) setStats(data);
+      })
+      .catch((reason) => {
+        if (active) setError(reason?.message || "Unable to load the dashboard.");
+      });
+    return () => {
+      active = false;
+    };
+  }, [reloadCount]);
+
+  function retry() {
+    setError("");
+    setReloadCount((count) => count + 1);
+  }
 
   return (
     <section className="space-y-4">
@@ -38,7 +47,7 @@ function VerificationOverview() {
       {error ? (
         <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {error}{" "}
-          <button type="button" onClick={load} className="font-semibold underline">
+          <button type="button" onClick={retry} className="font-semibold underline">
             Try again
           </button>
         </p>

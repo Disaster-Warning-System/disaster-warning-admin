@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
@@ -79,27 +79,37 @@ export default function HazardReportReviewPage() {
   const [report, setReport] = useState(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState(null);
-
-  const load = useCallback(() => {
-    setError("");
-    return getReport(id)
-      .then(setReport)
-      .catch((reason) => setError(reason?.message || "Unable to load the report."));
-  }, [id]);
+  const [reloadCount, setReloadCount] = useState(0);
 
   useEffect(() => {
-    if (id) load();
-  }, [id, load]);
+    if (!id) return undefined;
+    let active = true;
+    getReport(id)
+      .then((data) => {
+        if (!active) return;
+        setReport(data);
+        setError("");
+      })
+      .catch((reason) => {
+        if (active) setError(reason?.message || "Unable to load the report.");
+      });
+    return () => {
+      active = false;
+    };
+  }, [id, reloadCount]);
+
+  function reloadWithNotice(nextNotice) {
+    setNotice(nextNotice);
+    setReloadCount((count) => count + 1);
+  }
 
   function handleDone(message) {
-    setNotice({ tone: "success", message });
-    void load();
+    reloadWithNotice({ tone: "success", message });
   }
 
   // Another officer acted first: show what changed instead of the stale form
   function handleConflict(message) {
-    setNotice({ tone: "warning", message: `${message}. The latest version is shown below.` });
-    void load();
+    reloadWithNotice({ tone: "warning", message: `${message}. The latest version is shown below.` });
   }
 
   return (
