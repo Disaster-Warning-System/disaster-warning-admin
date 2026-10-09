@@ -1,4 +1,4 @@
-import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
+import { verificationStyles as ui } from "@/src/components/verification/verificationStyles";
 
 export default function ReporterHistory({ history }) {
   return (

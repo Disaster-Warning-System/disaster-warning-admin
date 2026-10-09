@@ -2,23 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ROLES } from "@/src/lib/roles";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", roles: [ROLES.DMC_OFFICER, ROLES.DISTRICT_OFFICER] },
-  { href: "/hazard-reports", label: "Verify reports", roles: [ROLES.DMC_OFFICER] },
-  { href: "/shelters", label: "Shelters", roles: [ROLES.DISTRICT_OFFICER] },
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/hazard-reports", label: "Verify reports" },
 ];
 
 export default function AdminHeader({ user, onSignOut }) {
   const pathname = usePathname();
-  const items = NAV_ITEMS.filter((item) => item.roles.includes(user.role));
 
   return (
     <header className="border-b border-[#DDE5EE] bg-white px-4 py-3 sm:px-6">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
-        <nav aria-label="Admin" className="flex flex-wrap items-center gap-1">
-          {items.map((item) => {
+        <nav aria-label="Verification" className="flex flex-wrap items-center gap-1">
+          {NAV_ITEMS.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link

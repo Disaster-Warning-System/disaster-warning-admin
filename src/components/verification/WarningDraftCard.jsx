@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
+import { verificationStyles as ui } from "@/src/components/verification/verificationStyles";
 import { describeLocation } from "@/src/utils/verification";
 
 function draftAsText(draft) {

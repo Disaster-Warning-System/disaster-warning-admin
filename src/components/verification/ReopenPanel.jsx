@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
+import { verificationStyles as ui } from "@/src/components/verification/verificationStyles";
 import { reopenReport } from "@/src/services/api/verificationApi";
 
 /** Sends a wrongly rejected report back to the verification queue. */

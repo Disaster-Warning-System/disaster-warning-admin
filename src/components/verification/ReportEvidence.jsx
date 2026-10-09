@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
+import { verificationStyles as ui } from "@/src/components/verification/verificationStyles";
 import { photoUrl } from "@/src/services/api/verificationApi";
 import { describeLocation, formatDateTime } from "@/src/utils/verification";
 import SeverityBadge from "./SeverityBadge";

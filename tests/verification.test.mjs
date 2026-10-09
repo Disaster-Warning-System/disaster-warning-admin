@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import { getAdminSession, saveAdminSession } from "../src/lib/auth.ts";
-import { isAdmin, isDmcOfficer } from "../src/lib/roles.js";
+import { hasRole, homePathFor } from "../src/lib/roles.js";
 import {
   VerificationApiError,
   getDashboard,
@@ -256,16 +256,22 @@ describe("report queue filters", () => {
 });
 
 describe("admin roles and formatting", () => {
-  it("lets both officer roles into the admin app but only DMC Officers into verification", () => {
+  it("sends each officer role to its own area after login and keeps other roles out", () => {
     const districtSession = { ...dmcSession, user: { ...dmcSession.user, role: "District Officer" } };
     const citizenSession = { ...dmcSession, user: { ...dmcSession.user, role: "Citizen" } };
 
-    assert.equal(isAdmin(dmcSession), true);
-    assert.equal(isAdmin(districtSession), true);
-    assert.equal(isAdmin(citizenSession), false);
-    assert.equal(isAdmin(null), false);
-    assert.equal(isDmcOfficer(dmcSession), true);
-    assert.equal(isDmcOfficer(districtSession), false);
+    assert.equal(homePathFor(dmcSession), "/dashboard");
+    assert.equal(homePathFor(districtSession), "/shelters");
+    assert.equal(homePathFor(citizenSession), null);
+    assert.equal(homePathFor(null), null);
+  });
+
+  it("allows only DMC Officers into the verification area", () => {
+    const districtSession = { ...dmcSession, user: { ...dmcSession.user, role: "District Officer" } };
+
+    assert.equal(hasRole(dmcSession, ["DMC Officer"]), true);
+    assert.equal(hasRole(districtSession, ["DMC Officer"]), false);
+    assert.equal(hasRole(null, ["DMC Officer"]), false);
   });
 
   it("shows report age in minutes, hours or days", () => {

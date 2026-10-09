@@ -7,7 +7,7 @@ import {
   clearAdminSession,
   getAdminSession,
 } from "@/src/lib/auth";
-import { ADMIN_ROLES, hasRole } from "@/src/lib/roles";
+import { ROLES, hasRole, homePathFor } from "@/src/lib/roles";
 import AdminHeader from "./AdminHeader";
 
 const AdminSessionContext = createContext(null);
@@ -17,7 +17,7 @@ export function useAdminSession() {
 }
 
 /** Shows children only to a signed-in officer whose role is in `roles`; the API still enforces access. */
-export default function AdminAuthGate({ roles = ADMIN_ROLES, children }) {
+export default function AdminAuthGate({ roles = [ROLES.DMC_OFFICER], children }) {
   const router = useRouter();
   const [session, setSession] = useState(null);
   const rolesKey = roles.join("|");
@@ -35,8 +35,8 @@ export default function AdminAuthGate({ roles = ADMIN_ROLES, children }) {
         return;
       }
       if (!hasRole(currentSession, allowedRoles)) {
-        // Signed in, but this area belongs to another role
-        router.replace("/dashboard");
+        // Signed in, but this area belongs to another role: send them to their own area
+        router.replace(homePathFor(currentSession) ?? "/login");
         return;
       }
       setSession(currentSession);

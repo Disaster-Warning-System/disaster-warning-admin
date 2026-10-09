@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { saveAdminSession, getAdminSession } from "@/src/lib/auth";
-import { isAdmin } from "@/src/lib/roles";
+import { homePathFor } from "@/src/lib/roles";
 import { AdminAuthError, loginAdmin } from "@/src/services/api/authApi";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
 
@@ -15,7 +15,8 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (isAdmin(getAdminSession())) router.replace("/dashboard");
+    const homePath = homePathFor(getAdminSession());
+    if (homePath) router.replace(homePath);
   }, [router]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -25,12 +26,14 @@ export default function LoginPage() {
 
     try {
       const session = await loginAdmin({ email: email.trim(), password });
-      if (!isAdmin(session)) {
+      // DMC Officers go to report verification, District Officers to shelters
+      const homePath = homePathFor(session);
+      if (!homePath) {
         setError("This account does not have officer access. Contact an administrator.");
         return;
       }
       saveAdminSession(session);
-      router.replace("/dashboard");
+      router.replace(homePath);
     } catch (reason) {
       setError(
         reason instanceof AdminAuthError || reason instanceof Error

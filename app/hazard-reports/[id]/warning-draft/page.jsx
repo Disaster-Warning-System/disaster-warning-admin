@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
+import { verificationStyles as ui } from "@/src/components/verification/verificationStyles";
 import WarningDraftCard from "@/src/components/verification/WarningDraftCard";
 import { getWarningDraft } from "@/src/services/api/verificationApi";
 

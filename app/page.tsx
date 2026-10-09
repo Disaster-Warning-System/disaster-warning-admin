@@ -14,10 +14,10 @@ export default function Home() {
           Verify hazard reports and manage emergency shelters.
         </p>
         <Link
-          href="/dashboard"
+          href="/login"
           className="mt-6 inline-flex rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white"
         >
-          Open admin dashboard
+          Officer sign in
         </Link>
       </section>
     </main>

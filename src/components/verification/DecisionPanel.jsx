@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
+import { verificationStyles as ui } from "@/src/components/verification/verificationStyles";
 import { submitDecision } from "@/src/services/api/verificationApi";
 import {
   REPORT_STATUS,

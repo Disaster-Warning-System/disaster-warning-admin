@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import AdminAuthGate, { useAdminSession } from "@/src/components/admin/AdminAuthGate";
-import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
+import { verificationStyles as ui } from "@/src/components/verification/verificationStyles";
 import DashboardStats from "@/src/components/verification/DashboardStats";
 import RecentActivity from "@/src/components/verification/RecentActivity";
-import { isDmcOfficer } from "@/src/lib/roles";
+import { ROLES } from "@/src/lib/roles";
 import { getDashboard } from "@/src/services/api/verificationApi";
 
 function VerificationOverview() {
@@ -65,40 +65,27 @@ function VerificationOverview() {
   );
 }
 
-function ShelterOverview() {
-  return (
-    <section className={`${ui.card} flex flex-wrap items-center justify-between gap-4 p-5`}>
-      <div>
-        <h2 className="text-xl font-bold text-[#16283D]">Emergency shelters</h2>
-        <p className={`text-sm ${ui.muted}`}>Manage shelter capacity, occupancy and operational status.</p>
-      </div>
-      <Link href="/shelters" className={ui.primaryButton}>
-        Manage shelters
-      </Link>
-    </section>
-  );
-}
-
 function DashboardContent() {
   const session = useAdminSession();
   return (
     <main className={ui.page}>
       <div className={ui.container}>
         <header>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1877B9]">Admin dashboard</p>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1877B9]">DMC dashboard</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#16283D]">
             Welcome, {session.user.name}
           </h1>
         </header>
-        {isDmcOfficer(session) ? <VerificationOverview /> : <ShelterOverview />}
+        <VerificationOverview />
       </div>
     </main>
   );
 }
 
+// The verification dashboard is for DMC Officers only; District Officers use the shelter area
 export default function DashboardPage() {
   return (
-    <AdminAuthGate>
+    <AdminAuthGate roles={[ROLES.DMC_OFFICER]}>
       <DashboardContent />
     </AdminAuthGate>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
+import { verificationStyles as ui } from "@/src/components/verification/verificationStyles";
 import { HAZARD_TYPES, REPORT_STATUS } from "@/src/utils/verification";
 
 const STATUS_LABELS = {

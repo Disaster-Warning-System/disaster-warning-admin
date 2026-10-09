@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
+import { verificationStyles as ui } from "@/src/components/verification/verificationStyles";
 import Pagination from "@/src/components/verification/Pagination";
 import ReportFilters from "@/src/components/verification/ReportFilters";
 import ReportQueueTable from "@/src/components/verification/ReportQueueTable";

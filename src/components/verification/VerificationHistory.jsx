@@ -1,4 +1,4 @@
-import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
+import { verificationStyles as ui } from "@/src/components/verification/verificationStyles";
 import { formatDateTime } from "@/src/utils/verification";
 import SeverityBadge from "./SeverityBadge";
 import StatusBadge from "./StatusBadge";

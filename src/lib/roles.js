@@ -3,16 +3,17 @@ export const ROLES = {
   DISTRICT_OFFICER: "District Officer",
 };
 
-export const ADMIN_ROLES = [ROLES.DMC_OFFICER, ROLES.DISTRICT_OFFICER];
-
 export function hasRole(session, roles) {
   return Boolean(session?.user && roles.includes(session.user.role));
 }
 
-export function isAdmin(session) {
-  return hasRole(session, ADMIN_ROLES);
-}
+// Each role has its own area: DMC Officers verify reports, District Officers manage shelters
+const HOME_PATHS = {
+  [ROLES.DMC_OFFICER]: "/dashboard",
+  [ROLES.DISTRICT_OFFICER]: "/shelters",
+};
 
-export function isDmcOfficer(session) {
-  return hasRole(session, [ROLES.DMC_OFFICER]);
+/** Where an officer lands after signing in, or null if the role has no admin area. */
+export function homePathFor(session) {
+  return HOME_PATHS[session?.user?.role] ?? null;
 }
