@@ -36,7 +36,7 @@ export default function DashboardStats({ stats }) {
       <StatTile
         label="Overdue"
         value={stats.overdueCount}
-        href={`${queueHref(REPORT_STATUS.PENDING)}&sort=severity`}
+        href={queueHref(REPORT_STATUS.PENDING)}
         tone={stats.overdueCount > 0 ? "danger" : "default"}
         hint="Waiting more than 30 min"
       />
