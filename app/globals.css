@@ -24,36 +24,3 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-
-@layer components {
-  .input {
-    @apply w-full rounded-lg border border-[#DDE5EE] bg-white px-3 py-2.5 text-sm text-[#17243A] outline-none transition placeholder:text-[#9AA8B6] focus:border-[#2378B9] focus:ring-2 focus:ring-[#D9ECF8];
-  }
-
-  .button-primary {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#2378B9] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#1B639A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2378B9] focus-visible:ring-offset-2;
-  }
-
-  .button-secondary {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#DDE5EE] bg-white px-4 py-2.5 text-sm font-bold text-[#536579] transition hover:border-[#AFC3D3] hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2378B9] focus-visible:ring-offset-2;
-  }
-}
-
-/* Make the selected shelter marker visible on the light map tiles. */
-.shelter-map-marker {
-  background: #b42318;
-  border: 3px solid #fff;
-  border-radius: 50% 50% 50% 0;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 35%);
-  height: 20px;
-  transform: rotate(-45deg);
-  width: 20px;
-}
-.shelter-map-marker span {
-  background: #fff;
-  border-radius: 50%;
-  display: block;
-  height: 6px;
-  margin: 4px;
-  width: 6px;
-}
