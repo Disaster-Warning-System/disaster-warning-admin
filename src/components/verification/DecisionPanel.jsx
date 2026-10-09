@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
 import { submitDecision } from "@/src/services/api/verificationApi";
-import { REPORT_STATUS, SEVERITIES, hasEvidence } from "@/src/utils/verification";
+import {
+  REPORT_STATUS,
+  SEVERITIES,
+  hasEvidence,
+  validateDecision,
+} from "@/src/utils/verification";
 
 const DECISIONS = [
   {
@@ -53,25 +58,9 @@ export default function DecisionPanel({ report, onDecided, onConflict }) {
 
   const evidenceAttached = hasEvidence(report);
 
-  function validate() {
-    if (!decision) return "Choose a decision.";
-    if (decision !== REPORT_STATUS.VERIFIED && !remarks.trim()) {
-      return decision === REPORT_STATUS.REJECTED
-        ? "Enter the reason for rejecting this report."
-        : "Tell the citizen what information you need.";
-    }
-    if (decision === REPORT_STATUS.VERIFIED) {
-      if (!checklist.locationChecked) return "Confirm that you checked the reported location.";
-      if (evidenceAttached && !checklist.evidenceReviewed) {
-        return "Confirm that you reviewed the attached evidence.";
-      }
-    }
-    return "";
-  }
-
   async function submit(event) {
     event.preventDefault();
-    const problem = validate();
+    const problem = validateDecision({ decision, remarks, checklist, report });
     setError(problem);
     if (problem) return;
 

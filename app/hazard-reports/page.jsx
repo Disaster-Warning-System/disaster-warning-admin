@@ -7,26 +7,15 @@ import Pagination from "@/src/components/verification/Pagination";
 import ReportFilters from "@/src/components/verification/ReportFilters";
 import ReportQueueTable from "@/src/components/verification/ReportQueueTable";
 import { listReports } from "@/src/services/api/verificationApi";
-import { REPORT_STATUS } from "@/src/utils/verification";
+import { buildQueueQuery, readQueueFilters } from "@/src/utils/verification";
 
 const PAGE_SIZE = 20;
-
-function readFilters(searchParams) {
-  return {
-    status: searchParams.get("status") || REPORT_STATUS.PENDING,
-    hazardType: searchParams.get("hazardType") || "",
-    district: searchParams.get("district") || "",
-    search: searchParams.get("search") || "",
-    sort: searchParams.get("sort") || "newest",
-    page: Math.max(Number.parseInt(searchParams.get("page") || "1", 10) || 1, 1),
-  };
-}
 
 function ReportQueue() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const filters = readFilters(searchParams);
+  const filters = readQueueFilters(searchParams);
   const queryKey = searchParams.toString();
 
   // `key` is the query the shown result belongs to, so loading is derived instead of stored
@@ -35,7 +24,7 @@ function ReportQueue() {
 
   useEffect(() => {
     let active = true;
-    const current = readFilters(new URLSearchParams(queryKey));
+    const current = readQueueFilters(new URLSearchParams(queryKey));
     listReports({ ...current, limit: PAGE_SIZE })
       .then((result) => {
         if (active) setState({ key: queryKey, result, error: "" });
@@ -66,14 +55,7 @@ function ReportQueue() {
   function updateFilters(changes) {
     const next = { ...filters, ...changes };
     if (!("page" in changes)) next.page = 1;
-    const params = new URLSearchParams();
-    if (next.status !== REPORT_STATUS.PENDING) params.set("status", next.status);
-    if (next.hazardType) params.set("hazardType", next.hazardType);
-    if (next.district) params.set("district", next.district);
-    if (next.search) params.set("search", next.search);
-    if (next.sort !== "newest") params.set("sort", next.sort);
-    if (next.page > 1) params.set("page", String(next.page));
-    const query = params.toString();
+    const query = buildQueueQuery(next);
     router.push(query ? `${pathname}?${query}` : pathname);
   }
 

@@ -2,7 +2,7 @@ import {
   ADMIN_SESSION_EXPIRED_EVENT,
   clearAdminSession,
   getAdminToken,
-} from "../../lib/auth";
+} from "../../lib/auth.ts";
 
 const API = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/+$/, "");
 
