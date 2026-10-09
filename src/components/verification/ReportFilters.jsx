@@ -11,12 +11,7 @@ const STATUS_LABELS = {
   [REPORT_STATUS.REJECTED]: "Rejected",
 };
 
-const TAB_ORDER = [
-  REPORT_STATUS.PENDING,
-  REPORT_STATUS.NEEDS_INFO,
-  REPORT_STATUS.VERIFIED,
-  REPORT_STATUS.REJECTED,
-].filter((status) => REPORT_STATUSES.includes(status));
+const TAB_ORDER = Object.keys(STATUS_LABELS);
 
 const selectClass =
   "mt-1 block min-h-11 w-full rounded-xl border border-[#DDE5EE] bg-white px-3 text-sm text-[#16283D] outline-none focus:border-[#1877B9] focus:ring-2 focus:ring-[#1877B9]/20";
