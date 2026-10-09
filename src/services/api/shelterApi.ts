@@ -12,6 +12,15 @@ type Envelope<T> = {
   message?: string;
   errors?: string[];
 };
+
+/** Keeps the HTTP status available so the offline queue can distinguish outages from invalid updates. */
+export class ShelterApiError extends Error {
+  constructor(message: string, readonly statusCode: number | null) {
+    super(message);
+    this.name = "ShelterApiError";
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
@@ -25,17 +34,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       },
     });
   } catch {
-    throw new Error("Unable to reach the shelter service.");
+    throw new ShelterApiError("Unable to reach the shelter service.", null);
   }
   let body: Envelope<T>;
   try {
     body = (await response.json()) as Envelope<T>;
   } catch {
-    throw new Error("The shelter service returned an invalid response.");
+    throw new ShelterApiError("The shelter service returned an invalid response.", response.status);
   }
   if (!response.ok || !body.success)
-    throw new Error(
+    throw new ShelterApiError(
       body.errors?.join(", ") || body.message || "Shelter request failed.",
+      response.status,
     );
   return body.data;
 }

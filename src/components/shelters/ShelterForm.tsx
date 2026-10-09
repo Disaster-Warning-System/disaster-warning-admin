@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import OpenStreetMapPicker from "@/src/components/shelters/OpenStreetMapPicker";
 import ShelterImageField from "@/src/components/shelters/ShelterImageField";
+import { getShelterFormValidationError } from "@/src/utils/shelterFormValidation";
+import { nextShelterFormStage, type ShelterFormStage } from "@/src/utils/shelterFormWorkflow";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
 import type {
   CreateShelterInput,
@@ -12,11 +15,11 @@ import type {
 } from "@/src/types/shelter";
 
 type Props =
-  | { mode: "create"; onSubmit: (value: CreateShelterInput, imageFile: File | null) => Promise<void> }
+  | { mode: "create"; onSubmit: (value: CreateShelterInput, imageFile: File | null) => Promise<"saved" | "queued" | void> }
   | {
       mode: "update";
       shelter: Shelter;
-      onSubmit: (value: UpdateShelterInput, imageFile: File | null, removeImage: boolean) => Promise<void>;
+      onSubmit: (value: UpdateShelterInput, imageFile: File | null, removeImage: boolean) => Promise<"saved" | "queued" | void>;
     };
 
 export default function ShelterForm(props: Props) {
@@ -36,72 +39,64 @@ export default function ShelterForm(props: Props) {
   const [removeImage, setRemoveImage] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [stage, setStage] = useState<ShelterFormStage>("editing");
+  const [completion, setCompletion] = useState<"saved" | "queued">("saved");
+  const parsedCapacity = Number(capacity);
+  const parsedOccupancy = Number(occupancy);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    const parsedCapacity = Number(capacity);
-    const parsedOccupancy = Number(occupancy);
 
-    if (props.mode === "create" && !name.trim()) {
-      setError("Shelter name is required. Enter a name.");
-      return;
-    }
-    if (!location.trim()) {
-      setError("Shelter location is required. Enter a location or address.");
-      return;
-    }
-    if (
-      props.mode === "create" &&
-      (!Number.isInteger(parsedCapacity) || parsedCapacity < 1)
-    ) {
-      setError("Capacity must be a whole number greater than 0. Enter a valid capacity.");
-      return;
-    }
-    if (!locationPoint) {
-      setError("Map location is required. Select or enter a valid map point.");
-      return;
-    }
-    if (!occupancy.trim()) {
-      setError("Current occupancy is required. Enter a whole number from 0 up to capacity.");
-      return;
-    }
-    if (!Number.isInteger(parsedOccupancy) || parsedOccupancy < 0) {
-      setError("Current occupancy must be a whole number from 0 up to capacity.");
-      return;
-    }
-    if (
-      parsedOccupancy >
-      (props.mode === "update" ? props.shelter.capacity : parsedCapacity)
-    ) {
-      setError("Current occupancy cannot exceed capacity. Enter a lower occupancy.");
+    const validationError = getShelterFormValidationError({
+      mode: props.mode,
+      name,
+      location,
+      locationPoint,
+      capacity: parsedCapacity,
+      occupancy: parsedOccupancy,
+      occupancyText: occupancy,
+      maximumCapacity: props.mode === "update" ? props.shelter.capacity : parsedCapacity,
+    });
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
+    setStage((current) => nextShelterFormStage(current, "valid-submit"));
+  }
+
+  async function confirmSave() {
     setSaving(true);
+    setError("");
+    setStage((current) => nextShelterFormStage(current, "confirm-save"));
     try {
+      let result: "saved" | "queued" | void;
       if (props.mode === "create") {
-        await props.onSubmit({
+        result = await props.onSubmit({
           name: name.trim(),
           location: location.trim(),
-          locationPoint,
+          locationPoint: locationPoint!,
           capacity: parsedCapacity,
           occupancy: parsedOccupancy,
           operationalStatus: status,
           remarks: remarks.trim(),
         }, imageFile);
       } else {
-        await props.onSubmit({
+        result = await props.onSubmit({
           location: location.trim(),
-          locationPoint,
+          locationPoint: locationPoint!,
           occupancy: parsedOccupancy,
           operationalStatus: status,
           remarks: remarks.trim(),
           imageId: removeImage ? null : undefined,
         }, imageFile, removeImage);
       }
+      setCompletion(result === "queued" ? "queued" : "saved");
+      setStage((current) => nextShelterFormStage(current, "save-success"));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not save shelter.");
+      setStage((current) => nextShelterFormStage(current, "save-failure"));
     } finally {
       setSaving(false);
     }
@@ -109,6 +104,56 @@ export default function ShelterForm(props: Props) {
 
   const currentCapacity = props.mode === "update" ? props.shelter.capacity : parsedOrZero(capacity);
   const availableSpaces = Math.max(currentCapacity - parsedOrZero(occupancy), 0);
+
+  if (stage === "complete") {
+    return (
+      <section role="status" className={`${ui.card} space-y-4 p-5 sm:p-6`}>
+        <h2 className="text-xl font-bold text-[#16283D]">
+          {completion === "queued" ? "Update saved on this device" : "Shelter update complete"}
+        </h2>
+        <p className={ui.muted}>
+          {completion === "queued"
+            ? "The reviewed occupancy and status update is stored locally and will sync when this device reconnects."
+            : props.mode === "create"
+              ? "The shelter has been registered and is available on the shelter dashboard."
+              : "The shelter record has been updated successfully."}
+        </p>
+        <Link href="/shelters" className={ui.primaryButton}>Return to shelter dashboard</Link>
+      </section>
+    );
+  }
+
+  if (stage === "review" || stage === "saving") {
+    return (
+      <section aria-labelledby="shelter-review-title" className={`${ui.card} space-y-5 p-5 sm:p-6`}>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1877B9]">Review before saving</p>
+          <h2 id="shelter-review-title" className="mt-2 text-xl font-bold text-[#16283D]">
+            {props.mode === "create" ? "Confirm shelter registration" : "Confirm shelter update"}
+          </h2>
+        </div>
+        <dl className="grid gap-3 rounded-xl bg-[#F5F7FA] p-4 text-sm sm:grid-cols-2">
+          {props.mode === "create" ? <ReviewValue label="Shelter name" value={name} /> : <ReviewValue label="Shelter name" value={props.shelter.name} />}
+          <ReviewValue label="Location" value={location} />
+          <ReviewValue label="Capacity" value={String(currentCapacity)} />
+          <ReviewValue label="Occupancy" value={String(parsedOccupancy)} />
+          <ReviewValue label="Available spaces" value={String(availableSpaces)} />
+          <ReviewValue label="Operational status" value={status} />
+          <ReviewValue label="Map point" value={locationPoint ? `${locationPoint.coordinates[1].toFixed(5)}, ${locationPoint.coordinates[0].toFixed(5)}` : "Not selected"} />
+          <ReviewValue label="Shelter image" value={imageFile ? imageFile.name : removeImage ? "Remove current image" : initial?.imageId ? "Keep current image" : "No image"} />
+          <ReviewValue label="Remarks" value={remarks.trim() || "None"} />
+        </dl>
+        {error ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <button type="button" disabled={saving} onClick={() => setStage((current) => nextShelterFormStage(current, "back-to-edit"))} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#DDE5EE] px-5 py-3 font-semibold text-[#1877B9] disabled:opacity-60">Back to edit</button>
+          <button type="button" disabled={saving} onClick={() => void confirmSave()} className={ui.primaryButton}>
+            {saving ? "Saving shelter update..." : "Confirm and save"}
+          </button>
+        </div>
+        {saving ? <p role="status" className={`text-sm ${ui.muted}`}>Saving your reviewed shelter changes. Please wait.</p> : null}
+      </section>
+    );
+  }
 
   return (
     <form onSubmit={submit} className={`${ui.card} space-y-5 p-4 sm:p-6`}>
@@ -179,10 +224,14 @@ export default function ShelterForm(props: Props) {
       ) : null}
 
       <button type="submit" disabled={saving} className={ui.primaryButton}>
-        {saving ? "Saving..." : props.mode === "create" ? "Register shelter" : "Save update"}
+        {props.mode === "create" ? "Review registration" : "Review update"}
       </button>
     </form>
   );
+}
+
+function ReviewValue({ label, value }: { label: string; value: string }) {
+  return <div><dt className="text-[#6B7C8F]">{label}</dt><dd className="mt-1 break-words font-semibold text-[#16283D]">{value}</dd></div>;
 }
 
 function Field({

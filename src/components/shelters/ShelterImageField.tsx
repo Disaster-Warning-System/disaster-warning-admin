@@ -24,16 +24,19 @@ export default function ShelterImageField({
   onRemoveChange,
 }: Props) {
   const [error, setError] = useState("");
-  const [previewUrl, setPreviewUrl] = useState("");
+  const [preview, setPreview] = useState<{ file: File; url: string } | null>(null);
 
   useEffect(() => {
-    if (!selectedFile) {
-      setPreviewUrl("");
-      return;
-    }
+    if (!selectedFile) return;
     const objectUrl = URL.createObjectURL(selectedFile);
-    setPreviewUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
+    // Wait one frame before publishing the derived preview state to avoid a synchronous effect update.
+    const frame = window.requestAnimationFrame(() => {
+      setPreview({ file: selectedFile, url: objectUrl });
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      URL.revokeObjectURL(objectUrl);
+    };
   }, [selectedFile]);
 
   function selectFile(file?: File) {
@@ -51,6 +54,7 @@ export default function ShelterImageField({
     onRemoveChange(false);
   }
 
+  const previewUrl = selectedFile && preview?.file === selectedFile ? preview.url : "";
   const imageSource = previewUrl || (imageId ? getShelterImageUrl(imageId) : "");
 
   return (
