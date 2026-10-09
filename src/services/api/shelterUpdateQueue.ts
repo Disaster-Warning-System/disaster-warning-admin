@@ -1,4 +1,5 @@
 import { ShelterApiError, updateShelter } from "@/src/services/api/shelterApi";
+import { getAdminSession } from "@/src/lib/auth";
 import type { UpdateShelterInput } from "@/src/types/shelter";
 import {
   removeShelterQueueItem,
@@ -20,10 +21,17 @@ export type PendingShelterUpdate = {
 export type ShelterSyncResult = { synced: number; pending: number };
 let activeSync: Promise<ShelterSyncResult> | null = null;
 
+function getStorageKey(): string | null {
+  const userId = getAdminSession()?.user._id;
+  return userId ? `${STORAGE_KEY}.${encodeURIComponent(userId)}` : null;
+}
+
 function readQueue(): PendingShelterUpdate[] {
   if (typeof window === "undefined") return [];
+  const storageKey = getStorageKey();
+  if (!storageKey) return [];
   try {
-    const value: unknown = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
+    const value: unknown = JSON.parse(window.localStorage.getItem(storageKey) || "[]");
     if (!Array.isArray(value)) return [];
     return value.filter(isPendingUpdate);
   } catch {
@@ -43,7 +51,9 @@ function isPendingUpdate(value: unknown): value is PendingShelterUpdate {
 
 function writeQueue(updates: PendingShelterUpdate[]): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updates));
+  const storageKey = getStorageKey();
+  if (!storageKey) return;
+  window.localStorage.setItem(storageKey, JSON.stringify(updates));
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 
@@ -58,6 +68,9 @@ export function getPendingShelterUpdate(shelterId: string): PendingShelterUpdate
 export function queueShelterUpdate(shelterId: string, changes: UpdateShelterInput): void {
   if (typeof window === "undefined") {
     throw new Error("This update cannot be saved offline in the current environment.");
+  }
+  if (!getStorageKey()) {
+    throw new Error("Sign in as a District Officer before saving shelter changes offline.");
   }
   const updates = readQueue();
   const next: PendingShelterUpdate = {
@@ -106,7 +119,7 @@ async function syncQueue(): Promise<ShelterSyncResult> {
         item.queueId === update.queueId ? { ...item, lastError: message } : item,
       ));
       // Client validation failures need review; outages can retry automatically later.
-      if (shouldRetryShelterUpdate(statusCode)) break;
+      if (statusCode === 401 || shouldRetryShelterUpdate(statusCode)) break;
     }
   }
   return { synced, pending: readQueue().length };

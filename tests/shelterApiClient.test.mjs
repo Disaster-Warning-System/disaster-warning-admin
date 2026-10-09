@@ -9,6 +9,7 @@ import {
   ShelterApiError,
   updateShelter,
 } from "../src/services/api/shelterApi.ts";
+import { saveAdminSession } from "../src/lib/auth.ts";
 
 const shelterId = "shelter/with spaces";
 const shelter = {
@@ -27,9 +28,12 @@ const shelter = {
 };
 
 const originalFetch = globalThis.fetch;
+const originalWindow = globalThis.window;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
+  if (originalWindow === undefined) delete globalThis.window;
+  else globalThis.window = originalWindow;
 });
 
 // Mock fetch to check the HTTP contract without calling the backend or MongoDB.
@@ -145,5 +149,30 @@ describe("admin shelter API CRUD requests", () => {
       assert.equal(error.message, "Capacity must be greater than 0.");
       return true;
     });
+  });
+
+  it("sends the signed-in officer JWT with protected shelter requests", async () => {
+    const values = new Map();
+    globalThis.window = {
+      sessionStorage: {
+        getItem: (key) => values.get(key) ?? null,
+        setItem: (key, value) => values.set(key, value),
+        removeItem: (key) => values.delete(key),
+      },
+      location: { pathname: "/shelters", assign() {} },
+    };
+    saveAdminSession({
+      token: "officer.jwt.token",
+      user: { _id: "officer-1", name: "Officer", email: "officer@example.lk", role: "District Officer", district: "Colombo" },
+    });
+    let requestOptions;
+    globalThis.fetch = async (_url, options) => {
+      requestOptions = options;
+      return mockResponse(shelter);
+    };
+
+    await updateShelter("shelter-1", { occupancy: 50 });
+
+    assert.equal(requestOptions.headers.Authorization, "Bearer officer.jwt.token");
   });
 });
