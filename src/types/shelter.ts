@@ -15,6 +15,7 @@ export type Shelter = {
   occupancy: number;
   operationalStatus: ShelterOperationalStatus;
   remarks: string;
+  imageId?: string | null;
   availableSpaces: number;
   availabilityStatus: ShelterOperationalStatus | "Full";
   createdAt: string;
@@ -29,9 +30,23 @@ export type CreateShelterInput = {
   occupancy: number;
   operationalStatus: ShelterOperationalStatus;
   remarks: string;
+  imageId?: string | null;
 };
 
 export type UpdateShelterInput = Pick<
   CreateShelterInput,
   "location" | "locationPoint" | "occupancy" | "operationalStatus" | "remarks"
->;
+> & { imageId?: string | null };
+
+export type ShelterOccupancyHistoryEntry = {
+  id?: string;
+  _id?: string;
+  occupancy: number;
+  operationalStatus: ShelterOperationalStatus;
+  changedAt: string;
+};
+
+export type ShelterOccupancyHistory = {
+  shelter: Pick<Shelter, "id" | "name" | "capacity">;
+  entries: ShelterOccupancyHistoryEntry[];
+};
