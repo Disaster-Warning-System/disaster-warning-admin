@@ -1,7 +1,9 @@
  "use client";
 
  import apiClient from "../../api/axios";
- import { useState } from "react";
+ import { useEffect, useState } from "react";
+ import { useSearchParams } from "next/navigation";
+ import { getOfficerReport } from "../../services/api/officerReportApi";
 
  const targetAreaOptions = ["Colombo", "Gampaha", "Kelani River Basin"];
  const channelOptions = ["SMS", "Push"];
@@ -12,14 +14,54 @@
      severity: "Warning",
      targetAreas: [],
      channels: [],
+     sourceReportId: "",
  };
 
  const CreateAlert = () => {
+     const searchParams = useSearchParams();
      const [formData, setFormData] = useState(initialFormData);
+     const [sourceReport, setSourceReport] = useState(null);
      const [showPreview, setShowPreview] = useState(false);
      const [status, setStatus] = useState(null);
      const [isSubmitting, setIsSubmitting] = useState(false);
      const [errors, setErrors] = useState({});
+
+     useEffect(() => {
+         const reportId = searchParams.get("reportId");
+         if (!reportId) return;
+
+         let active = true;
+         getOfficerReport(reportId)
+             .then((report) => {
+                 if (!active) return;
+                 if (report.status !== "Verified") {
+                     setErrors({ sourceReport: "Only verified reports can be used to issue a warning." });
+                     return;
+                 }
+
+                 const district = report.location?.district || report.district || "";
+                 const targetArea = targetAreaOptions.includes(district) ? [district] : [];
+                 const severity =
+                     report.severity === "High" ? "Warning" :
+                     report.severity === "Low" ? "Advisory" : "Watch";
+                 setSourceReport(report);
+                 setFormData((current) => ({
+                     ...current,
+                     sourceReportId: report._id,
+                     headline: `${report.hazardType} warning${district ? ` - ${district}` : ""}`,
+                     instruction: report.description,
+                     severity,
+                     targetAreas: targetArea,
+                 }));
+             })
+             .catch(() => {
+                 if (active) setErrors({ sourceReport: "Unable to load the source hazard report." });
+             });
+
+         return () => {
+             active = false;
+         };
+     }, [searchParams]);
 
      const updateFormData = (field, value) => {
          setFormData((current) => ({ ...current, [field]: value }));
@@ -37,6 +79,7 @@
 
      const validateForm = () => {
          const nextErrors = {};
+         if (formData.sourceReportId && !sourceReport) nextErrors.sourceReport = "The source report is not ready.";
          if (!formData.headline.trim()) nextErrors.headline = "Headline is required.";
          if (!formData.instruction.trim()) nextErrors.instruction = "Instruction is required.";
          if (!formData.targetAreas.length) nextErrors.targetAreas = "Select at least one target area.";
@@ -65,6 +108,7 @@
              });
              setShowPreview(false);
              setFormData(initialFormData);
+             setSourceReport(null);
              setErrors({});
          } catch (error) {
              setStatus({
@@ -90,6 +134,12 @@
                      role="status"
                  >
                      {status.message}
+                 </div>
+             )}
+             {errors.sourceReport && <p className="mb-4 rounded-lg bg-red-50 p-3 text-red-700">{errors.sourceReport}</p>}
+             {sourceReport && (
+                 <div className="mb-5 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+                     Warning is linked to verified report <strong>{sourceReport.reportId || sourceReport._id}</strong>.
                  </div>
              )}
 
