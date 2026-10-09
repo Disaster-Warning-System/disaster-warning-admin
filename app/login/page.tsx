@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { saveAdminSession, getAdminSession } from "@/src/lib/auth";
 import { homePathFor } from "@/src/lib/roles";
+import { saveWarningToken } from "@/src/lib/warningToken";
 import { AdminAuthError, loginAdmin } from "@/src/services/api/authApi";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
 
@@ -33,6 +34,8 @@ export default function LoginPage() {
         return;
       }
       saveAdminSession(session);
+      // Lets the Issue Warning form load the verified report for DMC Officers
+      saveWarningToken(session);
       router.replace(homePath);
     } catch (reason) {
       setError(

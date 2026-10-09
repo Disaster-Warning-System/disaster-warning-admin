@@ -8,6 +8,7 @@ import {
   getAdminSession,
 } from "@/src/lib/auth";
 import { ROLES, hasRole, homePathFor } from "@/src/lib/roles";
+import { clearWarningToken } from "@/src/lib/warningToken";
 import AdminHeader from "./AdminHeader";
 
 const AdminSessionContext = createContext(null);
@@ -43,6 +44,7 @@ export default function AdminAuthGate({ roles = [ROLES.DMC_OFFICER], children })
     });
 
     const handleExpiredSession = () => {
+      clearWarningToken();
       setSession(null);
       router.replace("/login");
     };
@@ -55,6 +57,7 @@ export default function AdminAuthGate({ roles = [ROLES.DMC_OFFICER], children })
 
   function signOut() {
     clearAdminSession();
+    clearWarningToken();
     router.replace("/login");
   }
 

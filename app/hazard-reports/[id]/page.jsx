@@ -51,10 +51,13 @@ function ActionPanel({ report, onDone, onConflict }) {
       <section className={`${ui.card} space-y-3 p-5`}>
         <h2 className="text-lg font-bold text-[#16283D]">Verified</h2>
         <p className={`text-sm ${ui.muted}`}>
-          Prepare a public warning from this report for the Issue Warning team.
+          Open the Create Warning form, pre-filled from this report.
         </p>
-        <Link href={`/hazard-reports/${report._id}/warning-draft`} className={`${ui.primaryButton} sm:w-full`}>
-          Draft warning
+        <Link
+          href={`/warnings/create?reportId=${encodeURIComponent(report._id)}`}
+          className={`${ui.primaryButton} sm:w-full`}
+        >
+          Issue warning from this report
         </Link>
       </section>
     );

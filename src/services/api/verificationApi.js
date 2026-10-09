@@ -97,7 +97,3 @@ export async function reopenReport(id, remarks) {
     })
   ).data;
 }
-
-export async function getWarningDraft(id) {
-  return (await request(`/api/reports/${encodeURIComponent(id)}/warning-draft`)).data;
-}

@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import { getAdminSession, saveAdminSession } from "../src/lib/auth.ts";
 import { hasRole, homePathFor } from "../src/lib/roles.js";
+import { clearWarningToken, saveWarningToken } from "../src/lib/warningToken.js";
 import {
   VerificationApiError,
   getDashboard,
   getReport,
-  getWarningDraft,
   listReports,
   photoUrl,
   reopenReport,
@@ -90,15 +90,13 @@ describe("verification API client", () => {
     assert.equal(url.searchParams.get("page"), "3");
   });
 
-  it("encodes the report ID in detail and warning-draft URLs", async () => {
+  it("encodes the report ID in the detail URL", async () => {
     signIn();
     const calls = mockFetch({ success: true, data: { _id: "a/b" } });
 
     await getReport("a/b");
-    await getWarningDraft("a/b");
 
     assert.equal(calls[0].url, "http://localhost:5000/api/reports/a%2Fb");
-    assert.equal(calls[1].url, "http://localhost:5000/api/reports/a%2Fb/warning-draft");
   });
 
   it("posts the decision body and returns the updated report and verification record", async () => {
@@ -279,5 +277,37 @@ describe("admin roles and formatting", () => {
     assert.equal(formatAge(45), "45 min");
     assert.equal(formatAge(150), "2 h");
     assert.equal(formatAge(60 * 50), "2 d");
+  });
+});
+
+describe("Issue Warning token handoff", () => {
+  function installLocalStorage() {
+    const values = new Map();
+    globalThis.window = {
+      localStorage: {
+        getItem: (key) => values.get(key) ?? null,
+        setItem: (key, value) => values.set(key, value),
+        removeItem: (key) => values.delete(key),
+      },
+    };
+    return values;
+  }
+
+  it("saves the token where the Create Warning form reads it, for DMC Officers only", () => {
+    const values = installLocalStorage();
+    saveWarningToken({ ...dmcSession, user: { ...dmcSession.user, role: "District Officer" } });
+    assert.equal(values.size, 0);
+
+    saveWarningToken(dmcSession);
+    assert.equal(values.get("dms_token"), "dmc.jwt.token");
+    assert.equal(JSON.parse(values.get("dms_user")).role, "DMC Officer");
+  });
+
+  it("removes the token on sign-out", () => {
+    const values = installLocalStorage();
+    saveWarningToken(dmcSession);
+
+    clearWarningToken();
+    assert.equal(values.size, 0);
   });
 });
