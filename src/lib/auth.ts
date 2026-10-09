@@ -47,3 +47,8 @@ export function getAdminToken(): string | null {
 export function isDistrictOfficer(session: AdminSession | null): boolean {
   return session?.user.role === "District Officer";
 }
+
+/** DMC Duty Officers review citizen hazard reports (Component 2). */
+export function isDmcOfficer(session: AdminSession | null): boolean {
+  return session?.user.role === "DMC Officer";
+}
