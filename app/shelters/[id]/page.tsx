@@ -8,9 +8,16 @@ import ShelterStatusBadge from "@/src/components/shelters/ShelterStatusBadge";
 import { shelterStyles as ui } from "@/src/components/shelters/shelterStyles";
 import {
   deleteShelter,
+  deleteShelterImage,
   getShelter,
+  uploadShelterImage,
   updateShelter,
 } from "@/src/services/api/shelterApi";
+import { ShelterApiError } from "@/src/services/api/shelterApi";
+import {
+  getPendingShelterUpdate,
+  queueShelterUpdate,
+} from "@/src/services/api/shelterUpdateQueue";
 import type { Shelter, UpdateShelterInput } from "@/src/types/shelter";
 
 export default function ShelterDetailsPage() {
@@ -25,7 +32,11 @@ export default function ShelterDetailsPage() {
     let active = true;
     getShelter(id)
       .then((value) => {
-        if (active) setShelter(value);
+        if (active) {
+          // Show the latest local version while a prior offline update awaits synchronization.
+          const pending = getPendingShelterUpdate(id);
+          setShelter(pending ? { ...value, ...pending.changes } : value);
+        }
       })
       .catch((reason) => {
         if (active) {
@@ -37,9 +48,44 @@ export default function ShelterDetailsPage() {
     };
   }, [id]);
 
-  async function submit(values: UpdateShelterInput) {
-    await updateShelter(id, values);
-    router.push("/shelters");
+  async function submit(values: UpdateShelterInput, imageFile: File | null, removeImage: boolean) {
+    if ((imageFile || removeImage) && !window.navigator.onLine) {
+      throw new Error("Shelter image changes need an internet connection. Reconnect to upload or remove the image; your other form entries are still here.");
+    }
+
+    if (!imageFile && !removeImage) {
+      try {
+        await updateShelter(id, values);
+        return "saved" as const;
+      } catch (reason) {
+        if (
+          reason instanceof ShelterApiError &&
+          (reason.statusCode === null || reason.statusCode >= 500)
+        ) {
+          try {
+            queueShelterUpdate(id, values);
+            return "queued" as const;
+          } catch {
+            throw new Error("The server is unavailable and this device could not store the update. Keep the form open and try again when storage or network access is available.");
+          }
+        }
+        throw reason;
+      }
+    }
+
+    let imageId: string | undefined;
+    try {
+      if (imageFile) imageId = await uploadShelterImage(imageFile);
+      await updateShelter(id, {
+        ...values,
+        ...(imageId ? { imageId } : {}),
+        ...(removeImage ? { imageId: null } : {}),
+      });
+    } catch (error) {
+      if (imageId) await deleteShelterImage(imageId).catch(() => undefined);
+      throw error;
+    }
+    return "saved" as const;
   }
 
   async function remove() {
@@ -89,16 +135,16 @@ export default function ShelterDetailsPage() {
 
   return (
     <main className={ui.page}>
-      <div className="mx-auto w-full max-w-3xl space-y-6">
+      <div className="mx-auto w-full max-w-3xl space-y-5 sm:space-y-6">
         <Link href="/shelters" className={ui.secondaryLink}>
           ← Back to shelters
         </Link>
-        <header className="flex flex-wrap items-start justify-between gap-4">
+        <header className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-start sm:gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#176fa8]">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1877B9]">
               Shelter details
             </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#183447]">
+            <h1 className="mt-2 break-words text-2xl font-bold tracking-tight text-[#16283D] sm:text-3xl">
               {shelter.name}
             </h1>
             <p className={`mt-2 ${ui.muted}`}>{shelter.location}</p>
@@ -106,7 +152,7 @@ export default function ShelterDetailsPage() {
           <ShelterStatusBadge shelter={shelter} />
         </header>
 
-        <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <section className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3">
           <Metric label="Capacity" value={shelter.capacity} />
           <Metric label="Occupancy" value={shelter.occupancy} />
           <Metric label="Available spaces" value={shelter.availableSpaces} />
@@ -114,9 +160,13 @@ export default function ShelterDetailsPage() {
 
         <ShelterForm mode="update" shelter={shelter} onSubmit={submit} />
 
-        <section className="space-y-3 rounded-2xl border border-red-200 bg-white p-5 shadow-sm">
+        <Link href={`/shelters/${shelter.id}/history`} className={ui.secondaryLink}>
+          View occupancy history
+        </Link>
+
+        <section className="space-y-3 rounded-2xl border border-red-200 bg-white p-4 shadow-sm sm:p-5">
           <div>
-            <h2 className="font-semibold text-[#183447]">Delete shelter</h2>
+            <h2 className="font-semibold text-[#16283D]">Delete shelter</h2>
             <p className={`mt-1 text-sm ${ui.muted}`}>
               Permanently remove this shelter and its record.
             </p>
@@ -130,7 +180,7 @@ export default function ShelterDetailsPage() {
             type="button"
             onClick={() => void remove()}
             disabled={deleting}
-            className="inline-flex items-center justify-center rounded-xl border border-red-200 px-4 py-2.5 font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-red-200 px-4 py-2.5 font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
             {deleting ? "Deleting..." : "Delete shelter"}
           </button>
@@ -144,7 +194,7 @@ function Metric({ label, value }: { label: string; value: number }) {
   return (
     <div className={`${ui.card} p-4`}>
       <p className={`text-xs ${ui.muted}`}>{label}</p>
-      <p className="mt-1 text-xl font-bold text-[#183447]">{value}</p>
+      <p className="mt-1 text-xl font-bold text-[#16283D]">{value}</p>
     </div>
   );
 }

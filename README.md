@@ -1,4 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Disaster Warning Admin
+
+This Next.js App Router application contains the DMC Officer interface for Issue Hazard Warning and the existing shelter and hazard-report workflows.
+
+## Issue Hazard Warning
+
+Open `/warnings/create` after signing in as a DMC Officer. The workflow has three explicit screens:
+
+1. Select a target mode, target areas, and severity.
+2. Compose the warning, choose languages, and select SMS or Push channels.
+3. Review the complete preview and tick the acknowledgement before selecting **Confirm & dispatch**.
+
+The first two screens never call the dispatch endpoint. A POST to `/api/alerts` is made only after explicit confirmation. Drafts are saved to this browser's local storage and do not dispatch notifications. Recipient counts shown before dispatch are clearly simulated estimates; the backend performs the authoritative recipient resolution and deduplication.
+
+The API client defaults to `http://localhost:5000/api`. Set `NEXT_PUBLIC_API_URL` in the environment when the backend runs elsewhere.
+
+## Local setup
+
+From this directory:
+
+```powershell
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`. The backend must be running separately, with `CORS_ORIGINS` allowing the frontend origin. Production validation uses:
+
+```powershell
+npm test
+npm run lint
+npm run build
+```
+
+## Default Next.js instructions
+
+This project was bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
