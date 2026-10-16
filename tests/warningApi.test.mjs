@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import {
   AREA_OPTIONS,
+  CHANNEL_OPTIONS,
   apiClient,
   deleteWarningDraft,
   getWarningDraft,
@@ -15,7 +16,7 @@ import {
 const form = {
   hazardType: "Flood", headline: "  Flood warning ", instructions: "  Move to safety  ",
   severity: "Warning", targetMode: "District", targetAreas: ["Colombo"],
-  languages: ["English"], channels: ["SMS", "Push"], sourceReportId: "report-1",
+  languages: ["English"], channels: ["SMS", "Push", "Email"], sourceReportId: "report-1",
 };
 const defaultAdapter = apiClient.defaults.adapter;
 
@@ -49,12 +50,16 @@ describe("Issue Warning frontend API and validation", () => {
     assert.equal(AREA_OPTIONS["River Basin"].length, 103);
   });
 
+  it("offers Email as a warning delivery channel", () => {
+    assert.ok(CHANNEL_OPTIONS.some(({ value }) => value === "Email"));
+  });
+
   it("previews with the server and sends target, channel, and update reference fields", async () => {
     const preview = await previewWarning({ ...form, supersedesAlertId: "ALT-old" });
     assert.equal(preview.recipientCount, 4);
     assert.equal(requests[0].url, "/alerts/preview");
     assert.deepEqual(JSON.parse(requests[0].data), {
-      severity: "Warning", targetMode: "District", targetAreas: ["Colombo"], channels: ["SMS", "Push"], supersedesAlertId: "ALT-old",
+      severity: "Warning", targetMode: "District", targetAreas: ["Colombo"], channels: ["SMS", "Push", "Email"], supersedesAlertId: "ALT-old",
     });
   });
 
@@ -79,7 +84,7 @@ describe("Issue Warning frontend API and validation", () => {
     assert.equal(requests[0].url, "/alerts");
     assert.deepEqual(JSON.parse(requests[0].data), {
       hazardType: "Flood", headline: "Flood warning", instructions: "Move to safety", severity: "Warning",
-      targetMode: "District", targetAreas: ["Colombo"], languages: ["English"], channels: ["SMS", "Push"],
+      targetMode: "District", targetAreas: ["Colombo"], languages: ["English"], channels: ["SMS", "Push", "Email"],
       sourceReportId: "report-1", supersedesAlertId: "ALT-old", minimumAcknowledged: true, conflictAcknowledged: true,
     });
   });

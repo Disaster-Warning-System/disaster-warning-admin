@@ -10,6 +10,7 @@ export const TARGET_MODE_OPTIONS = ["District", "River Basin"];
 export const LANGUAGE_OPTIONS = ["Sinhala", "Tamil", "English"];
 export const CHANNEL_OPTIONS = [
   { value: "SMS", label: "SMS" },
+  { value: "Email", label: "Email" },
   { value: "Push", label: "Push notifications" },
 ];
 
