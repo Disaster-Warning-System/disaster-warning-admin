@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/hazard-reports", label: "Verify reports" },
+  { href: "/warnings/create", label: "Issue warning", role: "DMC Officer" },
 ];
 
 export default function AdminHeader({ user, onSignOut }) {
@@ -15,7 +16,7 @@ export default function AdminHeader({ user, onSignOut }) {
     <header className="border-b border-[#DDE5EE] bg-white px-4 py-3 sm:px-6">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
         <nav aria-label="Verification" className="flex flex-wrap items-center gap-1">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.filter((item) => !item.role || item.role === user.role).map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link

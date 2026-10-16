@@ -40,9 +40,14 @@ function VerificationOverview() {
           <h2 className="text-xl font-bold text-[#16283D]">Hazard report verification</h2>
           <p className={`text-sm ${ui.muted}`}>Reports from citizens waiting for an officer&apos;s decision</p>
         </div>
-        <Link href="/hazard-reports" className={ui.primaryButton}>
-          Open report queue
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/warnings/create" className={ui.primaryButton}>
+            Issue hazard warning
+          </Link>
+          <Link href="/hazard-reports" className={ui.secondaryButton}>
+            Open report queue
+          </Link>
+        </div>
       </div>
       {error ? (
         <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">

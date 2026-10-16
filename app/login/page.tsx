@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { saveAdminSession, getAdminSession } from "@/src/lib/auth";
 import { homePathFor } from "@/src/lib/roles";
@@ -95,6 +96,12 @@ export default function LoginPage() {
             {submitting ? "Signing in..." : "Sign in"}
           </button>
         </form>
+        <p className="text-center text-sm text-[#6B7C8F]">
+          Need a public community account?{" "}
+          <Link href="/register" className="font-semibold text-[#1877B9] hover:text-[#075B94]">
+            Register here
+          </Link>
+        </p>
       </section>
     </main>
   );

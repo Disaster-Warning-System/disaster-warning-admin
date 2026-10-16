@@ -4,6 +4,8 @@ export const shelterStyles = {
   card: "rounded-2xl border border-[#DDE5EE] bg-white shadow-sm",
   primaryButton:
     "inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[#1877B9] px-5 py-3 text-base font-semibold text-white transition hover:bg-[#075B94] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877B9] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto",
+  secondaryButton:
+    "inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#DDE5EE] bg-white px-5 py-3 text-base font-semibold text-[#365064] transition hover:border-[#AFC3D3] hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1877B9] focus-visible:ring-offset-2 sm:w-auto",
   secondaryLink:
     "inline-flex min-h-11 items-center font-semibold text-[#1877B9] transition hover:text-[#075B94]",
   input:

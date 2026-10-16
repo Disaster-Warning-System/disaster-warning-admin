@@ -1,6 +1,9 @@
 "use client";
 
 import apiClient from "../../api/axios.js";
+import { DISTRICTS, RIVER_BASINS } from "../../constants/areas.ts";
+
+export { apiClient };
 
 export const SEVERITY_OPTIONS = ["Advisory", "Watch", "Warning", "Evacuation Order"];
 export const TARGET_MODE_OPTIONS = ["District", "River Basin"];
@@ -11,41 +14,36 @@ export const CHANNEL_OPTIONS = [
 ];
 
 export const AREA_OPTIONS: Record<string, string[]> = {
-  District: ["Colombo", "Gampaha"],
-  "River Basin": ["Kelani River Basin"],
+  District: DISTRICTS,
+  "River Basin": RIVER_BASINS,
 };
 
-const recipientEstimates: Record<string, number> = {
-  Colombo: 1250,
-  Gampaha: 980,
-  "Kelani River Basin": 1680,
+export type WarningForm = {
+  hazardType: string;
+  headline: string;
+  instructions: string;
+  severity: string;
+  targetMode: string;
+  targetAreas: string[];
+  languages: string[];
+  channels: string[];
+  sourceReportId?: string;
+  supersedesAlertId?: string;
+  minimumAcknowledged?: boolean;
+  conflictAcknowledged?: boolean;
 };
 
-const simulatedRecipientIds: Record<string, string[]> = {
-  Colombo: ["C001", "C002", "C003"],
-  Gampaha: ["C003", "C004"],
-  "Kelani River Basin": ["C002", "C005"],
+export type WarningPreview = {
+  targetAreas: string[];
+  recipientCount: number;
+  minimumRecipients: number;
+  belowMinimum: boolean;
+  noRecipients: boolean;
+  conflicts: Array<{ alertId: string; headline: string; severity: string; targetAreas: string[]; status: string; issuedAt: string }>;
+  conflictWindowMinutes: number;
 };
 
-export function estimateRecipients(areas: string[], targetMode: string) {
-  // The backend resolves recipients during dispatch; this is an explicitly simulated preview estimate.
-  if (!AREA_OPTIONS[targetMode]) return 0;
-  const knownAreas = [...new Set(areas)].filter((area) => simulatedRecipientIds[area]);
-  if (knownAreas.length > 0) {
-    return new Set(knownAreas.flatMap((area) => simulatedRecipientIds[area])).size;
-  }
-  return [...new Set(areas)].reduce((total, area) => total + (recipientEstimates[area] || 0), 0);
-}
-
-export function validateWarningForm(form: {
-  headline?: string;
-  instructions?: string;
-  severity?: string;
-  targetMode?: string;
-  targetAreas?: string[];
-  languages?: string[];
-  channels?: string[];
-}, step: number) {
+export function validateWarningForm(form: Partial<WarningForm>, step: number) {
   const errors: Record<string, string> = {};
   if (!form.targetAreas?.length) errors.targetAreas = "Select at least one target area.";
   if (!form.severity || !SEVERITY_OPTIONS.includes(form.severity)) errors.severity = "Select a valid severity.";
@@ -59,23 +57,36 @@ export function validateWarningForm(form: {
   return errors;
 }
 
-export function saveWarningDraft(form: unknown) {
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem("dmc-warning-draft", JSON.stringify(form));
-  }
+export function previewWarning(form: WarningForm) {
+  return apiClient.post<WarningPreview>("/alerts/preview", {
+    severity: form.severity,
+    targetMode: form.targetMode,
+    targetAreas: form.targetAreas,
+    channels: form.channels,
+    supersedesAlertId: form.supersedesAlertId,
+  }).then((response) => response.data);
 }
 
-export function submitWarning(form: {
-  hazardType: string;
-  headline: string;
-  instructions: string;
-  severity: string;
-  targetMode: string;
-  targetAreas: string[];
-  languages: string[];
-  channels: string[];
-  sourceReportId?: string;
-}) {
+export async function saveWarningDraft(form: WarningForm, alertId?: string) {
+  const body = {
+    ...form,
+    headline: form.headline.trim(),
+    instructions: form.instructions.trim(),
+    channels: form.channels,
+  };
+  const response = alertId
+    ? await apiClient.put(`/alerts/drafts/${encodeURIComponent(alertId)}`, body)
+    : await apiClient.post("/alerts/drafts", body);
+  return response.data.draft;
+}
+
+export const getWarningDrafts = () => apiClient.get("/alerts/drafts").then((response) => response.data.drafts);
+export const getWarningDraft = (alertId: string) => apiClient.get(`/alerts/drafts/${encodeURIComponent(alertId)}`).then((response) => response.data.draft);
+export const deleteWarningDraft = (alertId: string) => apiClient.delete(`/alerts/drafts/${encodeURIComponent(alertId)}`);
+export const getWarnings = () => apiClient.get("/alerts").then((response) => response.data);
+export const getWarning = (alertId: string) => apiClient.get(`/alerts/${encodeURIComponent(alertId)}`).then((response) => response.data.alert);
+
+export function submitWarning(form: WarningForm) {
   return apiClient.post("/alerts", {
     hazardType: form.hazardType,
     headline: form.headline.trim(),
@@ -86,5 +97,8 @@ export function submitWarning(form: {
     languages: form.languages,
     channels: form.channels,
     sourceReportId: form.sourceReportId || undefined,
+    supersedesAlertId: form.supersedesAlertId || undefined,
+    minimumAcknowledged: form.minimumAcknowledged === true,
+    conflictAcknowledged: form.conflictAcknowledged === true,
   });
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getOfficerReport } from "../../services/api/officerReportApi";
 import {
@@ -9,7 +9,11 @@ import {
   LANGUAGE_OPTIONS,
   SEVERITY_OPTIONS,
   TARGET_MODE_OPTIONS,
-  estimateRecipients,
+  deleteWarningDraft,
+  getWarning,
+  getWarningDraft,
+  getWarningDrafts,
+  previewWarning,
   saveWarningDraft,
   submitWarning,
   validateWarningForm,
@@ -25,6 +29,7 @@ const initialForm = {
   languages: ["English"],
   channels: ["SMS", "Push"],
   sourceReportId: "",
+  supersedesAlertId: "",
 };
 
 const severityStyles = {
@@ -74,14 +79,52 @@ function CreateAlert() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sourceReport, setSourceReport] = useState(null);
   const [acknowledged, setAcknowledged] = useState(false);
+  const [warningPreview, setWarningPreview] = useState(null);
+  const [minimumAcknowledged, setMinimumAcknowledged] = useState(false);
+  const [conflictAcknowledged, setConflictAcknowledged] = useState(false);
+  const [draftId, setDraftId] = useState("");
+  const [drafts, setDrafts] = useState([]);
+  const [selectedDraftId, setSelectedDraftId] = useState("");
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
 
   const availableAreas = AREA_OPTIONS[form.targetMode] || [];
-  const estimatedRecipients = useMemo(
-    () => estimateRecipients(form.targetAreas, form.targetMode),
-    [form.targetAreas, form.targetMode],
-  );
+  const recipientCount = warningPreview?.recipientCount ?? 0;
 
   useEffect(() => {
+    getWarningDrafts().then(setDrafts).catch(() => {});
+    const draftIdParam = searchParams.get("draftId");
+    if (draftIdParam) {
+      let active = true;
+      getWarningDraft(draftIdParam)
+        .then((draft) => {
+          if (!active) return;
+          setDraftId(draft.alertId);
+          setForm({ ...initialForm, ...draft, instructions: draft.instructions || draft.instruction || "", channels: draft.channels || draft.selectedDeliveryChannels || [] });
+        })
+        .catch(() => { if (active) setErrors({ draft: "Unable to load this saved draft." }); });
+      return () => { active = false; };
+    }
+
+    const supersedesAlertId = searchParams.get("supersedesAlertId");
+    if (supersedesAlertId) {
+      let active = true;
+      getWarning(supersedesAlertId)
+        .then((alert) => {
+          if (!active) return;
+          setForm({
+            ...initialForm,
+            ...alert,
+            instructions: alert.instructions || alert.instruction || "",
+            channels: alert.channels || alert.selectedDeliveryChannels || [],
+            sourceReportId: alert.sourceReportId || "",
+            supersedesAlertId: alert.alertId,
+          });
+        })
+        .catch(() => { if (active) setErrors({ sourceReport: "Unable to load the warning being updated." }); });
+      return () => { active = false; };
+    }
+
     const reportId = searchParams.get("reportId");
     if (!reportId) return;
     let active = true;
@@ -113,6 +156,7 @@ function CreateAlert() {
   const update = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: "" }));
+    setWarningPreview(null);
   };
 
   const toggleArea = (area) => {
@@ -138,19 +182,57 @@ function CreateAlert() {
     }
   };
 
-  const goToReview = () => {
+  const goToReview = async () => {
     const validation = validateWarningForm(form, 2);
     setErrors(validation);
-    if (Object.keys(validation).length === 0) {
+    if (Object.keys(validation).length > 0) return;
+    setIsPreviewing(true);
+    setNotice({ type: "loading", text: "Resolving registered recipients and checking recent warnings..." });
+    try {
+      const preview = await previewWarning(form);
+      setWarningPreview(preview);
       setAcknowledged(false);
+      setMinimumAcknowledged(false);
+      setConflictAcknowledged(false);
       setNotice(null);
+      if (preview.noRecipients) {
+        setStep(1);
+        setNotice({ type: "error", text: "No registered recipients match these areas. Choose another target area before continuing." });
+        return;
+      }
       setStep(3);
+    } catch (error) {
+      setNotice({ type: "error", text: error.response?.data?.message || "Unable to resolve the recipients. Please try again." });
+    } finally {
+      setIsPreviewing(false);
     }
   };
 
-  const saveDraft = () => {
-    saveWarningDraft(form);
-    setNotice({ type: "success", text: "Draft saved on this device. No notification was sent." });
+  const saveDraft = async () => {
+    if (isSavingDraft) return;
+    setIsSavingDraft(true);
+    try {
+      const draft = await saveWarningDraft(form, draftId || undefined);
+      setDraftId(draft.alertId);
+      setDrafts(await getWarningDrafts());
+      setNotice({ type: "success", text: "Draft saved to the server. No notifications were sent." });
+    } catch (error) {
+      setNotice({ type: "error", text: error.response?.data?.message || "Unable to save this draft." });
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
+  const loadSelectedDraft = async (id) => {
+    if (!id) return;
+    try {
+      const draft = await getWarningDraft(id);
+      setDraftId(draft.alertId);
+      setForm({ ...initialForm, ...draft, instructions: draft.instructions || draft.instruction || "", channels: draft.channels || draft.selectedDeliveryChannels || [] });
+      setNotice({ type: "success", text: "Draft loaded. Review all fields before dispatch." });
+    } catch (error) {
+      setNotice({ type: "error", text: error.response?.data?.message || "Unable to load this draft." });
+    }
   };
 
   const dispatchWarning = async () => {
@@ -164,7 +246,7 @@ function CreateAlert() {
     setIsSubmitting(true);
     setNotice({ type: "loading", text: "Submitting warning and processing delivery channels..." });
     try {
-      const response = await submitWarning(form);
+      const response = await submitWarning({ ...form, minimumAcknowledged, conflictAcknowledged });
       const data = response.data;
       setNotice({
         type: data.status === "Failed" ? "error" : "success",
@@ -172,7 +254,20 @@ function CreateAlert() {
         data,
       });
       setAcknowledged(false);
+      if (draftId) {
+        await deleteWarningDraft(draftId).catch(() => {});
+        setDraftId("");
+        setDrafts((current) => current.filter((draft) => draft.alertId !== draftId));
+      }
     } catch (error) {
+      if (error.response?.data?.code === "LOW_RECIPIENT_COUNT") {
+        setWarningPreview((current) => ({ ...current, belowMinimum: true, minimumRecipients: error.response.data.minimumRecipients, recipientCount: error.response.data.recipientCount }));
+        setMinimumAcknowledged(false);
+      }
+      if (error.response?.data?.code === "CONFLICTING_WARNING") {
+        setWarningPreview((current) => ({ ...current, conflicts: error.response.data.conflicts || [] }));
+        setConflictAcknowledged(false);
+      }
       setNotice({
         type: "error",
         text: error.response?.data?.message || "The warning could not be dispatched. Please try again.",
@@ -207,15 +302,30 @@ function CreateAlert() {
             <StepIndicator step={step} />
           </div>
 
+          {drafts.length > 0 && step === 1 && (
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-[#DDE5EE] bg-white p-3">
+              <label htmlFor="saved-drafts" className="text-sm font-semibold">Saved drafts</label>
+              <select id="saved-drafts" value={selectedDraftId} onChange={(event) => setSelectedDraftId(event.target.value)} className="input min-w-56 flex-1">
+                <option value="">Choose a saved draft</option>
+                {drafts.map((draft) => <option key={draft.alertId} value={draft.alertId}>{draft.headline || "Untitled draft"} · {draft.alertId}</option>)}
+              </select>
+              <button type="button" className="button-secondary" disabled={!selectedDraftId} onClick={() => loadSelectedDraft(selectedDraftId)}>Load draft</button>
+            </div>
+          )}
+
           {notice && (
             <div className={`mb-4 rounded-xl border p-4 text-sm ${notice.type === "error" ? "border-[#F1C4C4] bg-[#FFF5F5] text-[#9B1C1C]" : notice.type === "loading" ? "border-[#BBD9EC] bg-[#F0F8FD] text-[#17618F]" : "border-[#B9DEC9] bg-[#F1FBF5] text-[#176B3B]"}`} role={notice.type === "loading" ? "status" : "alert"}>
               <p className="font-semibold">{notice.text}</p>
               {notice.data?.deliveryLogs?.length ? (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {notice.data.deliveryLogs.map((log) => (
-                    <span key={log.channel} className={`rounded-md px-2 py-1 text-xs font-semibold ${log.status === "Success" ? "bg-[#DDF4E6] text-[#176B3B]" : "bg-[#FCE1E1] text-[#9B1C1C]"}`}>
-                      {log.channel}: {log.status}
-                    </span>
+                    <div key={log.channel} className={`max-w-full rounded-md px-2 py-1 text-xs ${["Success", "Accepted"].includes(log.status) ? "bg-[#DDF4E6] text-[#176B3B]" : "bg-[#FCE1E1] text-[#9B1C1C]"}`}>
+                      <p className="font-semibold">{log.channel}: {log.status} · {log.acceptedCount || 0} accepted · {log.attemptedCount || 0} attempted · {log.failedCount || 0} not delivered</p>
+                      {log.reason && <p className="mt-1">{log.reason}</p>}
+                      {log.providerResults?.filter((result) => result.error).map((result, index) => (
+                        <p key={`${result.userId || "recipient"}-${index}`} className="mt-1">{result.error}</p>
+                      ))}
+                    </div>
                   ))}
                 </div>
               ) : null}
@@ -266,8 +376,8 @@ function CreateAlert() {
                   </div>
                 </div>
                 <div className="mt-6 flex items-center justify-between rounded-lg border border-[#DDE5EE] bg-[#F8FAFC] p-4">
-                  <div><p className="text-sm font-semibold">Estimated unique recipients</p><p className="text-xs text-[#8291A1]">Simulated estimate based on registered area associations</p></div>
-                  <strong className="text-2xl text-[#2378B9]">{estimatedRecipients.toLocaleString()}</strong>
+                  <div><p className="text-sm font-semibold">Unique registered recipients</p><p className="text-xs text-[#8291A1]">Resolved from citizen and volunteer accounts during review.</p></div>
+                  <strong className="text-2xl text-[#2378B9]">{warningPreview ? recipientCount.toLocaleString() : "—"}</strong>
                 </div>
                 <div className="mt-6 flex justify-end"><button type="button" onClick={goToCompose} className="button-primary">Continue to compose <span aria-hidden="true">→</span></button></div>
               </section>
@@ -282,7 +392,7 @@ function CreateAlert() {
                   <div><span className="mb-2 block text-sm font-semibold">Languages</span><div className="flex flex-wrap gap-2">{LANGUAGE_OPTIONS.map((language) => <label key={language} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${form.languages.includes(language) ? "border-[#2378B9] bg-[#F0F8FD] text-[#176A9F]" : "border-[#DDE5EE] text-[#66778A]"}`}><input type="checkbox" checked={form.languages.includes(language)} onChange={() => toggleValue("languages", language)} className="accent-[#2378B9]" />{language}</label>)}</div><FieldError>{errors.languages}</FieldError></div>
                   <div><span className="mb-2 block text-sm font-semibold">Delivery channels</span><div className="flex flex-wrap gap-2">{CHANNEL_OPTIONS.map((channel) => <label key={channel.value} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${form.channels.includes(channel.value) ? "border-[#2378B9] bg-[#F0F8FD] text-[#176A9F]" : "border-[#DDE5EE] text-[#66778A]"}`}><input type="checkbox" checked={form.channels.includes(channel.value)} onChange={() => toggleValue("channels", channel.value)} className="accent-[#2378B9]" />{channel.label}</label>)}</div><FieldError>{errors.channels}</FieldError></div>
                 </div>
-                <div className="mt-7 flex flex-wrap justify-between gap-3"><button type="button" onClick={() => setStep(1)} className="button-secondary">← Back</button><div className="flex gap-3"><button type="button" onClick={saveDraft} className="button-secondary">Save draft</button><button type="button" onClick={goToReview} className="button-primary">Review warning <span aria-hidden="true">→</span></button></div></div>
+                <div className="mt-7 flex flex-wrap justify-between gap-3"><button type="button" onClick={() => setStep(1)} className="button-secondary">Back</button><div className="flex gap-3"><button type="button" onClick={saveDraft} disabled={isSavingDraft} className="button-secondary">{isSavingDraft ? "Saving..." : "Save draft"}</button><button type="button" onClick={goToReview} disabled={isPreviewing} className="button-primary disabled:opacity-50">{isPreviewing ? "Resolving..." : "Review warning"}</button></div></div>
               </section>
             )}
 
@@ -292,10 +402,13 @@ function CreateAlert() {
                 <div className="rounded-xl border border-[#DDE5EE] bg-[#F8FAFC] p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.1em] text-[#8291A1]">{form.hazardType}</p><h3 className="mt-1 text-xl font-bold">{form.headline}</h3></div><span className={`rounded-full border px-3 py-1 text-xs font-bold ${severityStyles[form.severity]}`}>{form.severity}</span></div>
                   <p className="mt-5 whitespace-pre-wrap text-sm leading-6 text-[#3D4E62]">{form.instructions}</p>
-                  <dl className="mt-5 grid gap-4 border-t border-[#DDE5EE] pt-4 sm:grid-cols-2"><div><dt className="text-xs font-semibold uppercase text-[#8291A1]">Target areas</dt><dd className="mt-1 text-sm font-semibold">{form.targetAreas.join(", ")}</dd></div><div><dt className="text-xs font-semibold uppercase text-[#8291A1]">Estimated recipients</dt><dd className="mt-1 text-sm font-semibold">{estimatedRecipients.toLocaleString()} citizens</dd></div><div><dt className="text-xs font-semibold uppercase text-[#8291A1]">Languages</dt><dd className="mt-1 text-sm font-semibold">{form.languages.join(", ")}</dd></div><div><dt className="text-xs font-semibold uppercase text-[#8291A1]">Channels</dt><dd className="mt-1 text-sm font-semibold">{form.channels.map((channel) => CHANNEL_OPTIONS.find((item) => item.value === channel)?.label || channel).join(", ")}</dd></div></dl>
+                  <dl className="mt-5 grid gap-4 border-t border-[#DDE5EE] pt-4 sm:grid-cols-2"><div><dt className="text-xs font-semibold uppercase text-[#8291A1]">Target areas</dt><dd className="mt-1 text-sm font-semibold">{warningPreview?.targetAreas.join(", ") || form.targetAreas.join(", ")}</dd></div><div><dt className="text-xs font-semibold uppercase text-[#8291A1]">Unique registered recipients</dt><dd className="mt-1 text-sm font-semibold">{recipientCount.toLocaleString()} citizens</dd></div><div><dt className="text-xs font-semibold uppercase text-[#8291A1]">Languages</dt><dd className="mt-1 text-sm font-semibold">{form.languages.join(", ")}</dd></div><div><dt className="text-xs font-semibold uppercase text-[#8291A1]">Channels</dt><dd className="mt-1 text-sm font-semibold">{form.channels.map((channel) => CHANNEL_OPTIONS.find((item) => item.value === channel)?.label || channel).join(", ")}</dd></div></dl>
                 </div>
+                {warningPreview?.belowMinimum && <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"><p>{recipientCount} recipients is below the configured minimum of {warningPreview.minimumRecipients} for {form.severity}.</p><label className="mt-2 flex gap-2"><input type="checkbox" checked={minimumAcknowledged} onChange={(event) => setMinimumAcknowledged(event.target.checked)} />I reviewed this and approve proceeding.</label></div>}
+                {!!warningPreview?.conflicts?.length && <div className="mt-4 rounded-lg border border-orange-300 bg-orange-50 p-4 text-sm text-orange-950"><p className="font-semibold">Recent overlapping warnings:</p><ul className="mt-2 list-inside list-disc">{warningPreview.conflicts.map((item) => <li key={item.alertId}>{item.alertId}: {item.headline} ({item.severity}) — {item.targetAreas.join(", ")}</li>)}</ul><label className="mt-2 flex gap-2"><input type="checkbox" checked={conflictAcknowledged} onChange={(event) => setConflictAcknowledged(event.target.checked)} />I reviewed the existing warning and approve this follow-up.</label></div>}
                 <label className="mt-6 flex cursor-pointer gap-3 rounded-lg border border-[#DDE5EE] p-4 text-sm leading-6"><input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} className="mt-1 h-4 w-4 accent-[#2378B9]" />I confirm that this warning has been reviewed and is ready to be dispatched to the selected recipients.</label>
-                <div className="mt-7 flex flex-wrap justify-between gap-3"><button type="button" onClick={() => setStep(2)} className="button-secondary" disabled={isSubmitting}>← Edit warning</button><button type="button" onClick={dispatchWarning} disabled={!acknowledged || isSubmitting} className="button-primary disabled:cursor-not-allowed disabled:opacity-50">{isSubmitting ? "Dispatching..." : "Confirm & dispatch"}</button></div>
+                <p className="mt-3 text-xs text-[#718096]">Provider acceptance confirms the service accepted the request; it does not confirm delivery to or display on a phone.</p>
+                <div className="mt-7 flex flex-wrap justify-between gap-3"><button type="button" onClick={() => setStep(2)} className="button-secondary" disabled={isSubmitting}>Edit warning</button><button type="button" onClick={dispatchWarning} disabled={!acknowledged || (warningPreview?.belowMinimum && !minimumAcknowledged) || (!!warningPreview?.conflicts?.length && !conflictAcknowledged) || isSubmitting} className="button-primary disabled:cursor-not-allowed disabled:opacity-50">{isSubmitting ? "Dispatching..." : "Confirm & dispatch"}</button></div>
               </section>
             )}
           </div>
